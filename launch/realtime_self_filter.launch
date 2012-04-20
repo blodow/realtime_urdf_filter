@@ -1,0 +1,18 @@
+<launch>
+  <node pkg="realtime_self_filter" type="realtime_self_filter" name="realtime_self_filter" output="screen" >
+    <remap from="~input" to="/cloud_pcd" />
+    <rosparam>
+      fixed_frame: /map
+      camera_frame: /openni_rgb_optical_frame
+      camera_offset:
+        translation: [0.0, 0.0, 0.0]
+        rotation:    [0.0, 0.0, 0.0, 1.0]
+      models: 
+        - model: "/ias_kitchen/kitchen_description"
+          tf_prefix: /ias_kitchen
+        - model: /robot_description
+          tf_prefix: ""
+    </rosparam>
+  </node>
+</launch>
+

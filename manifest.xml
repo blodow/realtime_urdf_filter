@@ -1,0 +1,25 @@
+<package>
+  <description brief="realtime_self_filter">
+
+     realtime_self_filter
+
+  </description>
+  <author>Nico Blodow</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/realtime_self_filter</url>
+  
+  <depend package="urdf" />
+  <depend package="tf" />
+  <depend package="openni" />
+  <depend package="resource_retriever" />
+  <depend package="assimp" />
+  <depend package="sensor_msgs" />
+  <depend package="cv_bridge" />
+  <export>
+    <cpp cflags="-I${prefix}/include" />
+  </export>
+
+</package>
+
+
