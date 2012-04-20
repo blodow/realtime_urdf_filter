@@ -24,6 +24,7 @@ class RealtimeSelfFilter
   public:
     RealtimeSelfFilter (ros::NodeHandle &nh, int argc, char **argv)
       : nh(nh)
+      , kinect_depth_image_pbo (GL_INVALID_VALUE)
       , normal_method(1)
       , nr_neighbors (36)
       , radius_cm (5)
@@ -144,6 +145,7 @@ void print_backtrace ()
     //          const boost::shared_ptr<openni_wrapper::DepthImage>& depth_image, 
     //          float constant)
     {
+      createPBOFromDepthImage (kinect_depth_image_pbo, depth_image);
       // TIMING
       static unsigned count = 0;
       static double last = getTime ();
@@ -193,6 +195,21 @@ void print_backtrace ()
       cv::waitKey (2);
 
       //TODO: compute transformation between urdf model and kinect cloud.
+    }
+
+    void createPBOFromDepthImage (GLuint &pbo, cv::Mat depth_image)
+    {
+      assert (depth_image.cols = depth_image.step);
+      if (pbo == GL_INVALID_VALUE)
+      {
+        glGenBuffers (1, &pbo);
+      }
+      glBindBuffer (GL_ARRAY_BUFFER, pbo);
+
+      // buffer data
+      int size_in_bytes = depth_image.total()*depth_image.elemSize();
+      glBufferData (GL_ARRAY_BUFFER, size_in_bytes, depth_image.data, GL_DYNAMIC_DRAW);
+      glBindBuffer (GL_ARRAY_BUFFER, 0);
     }
 
 //    template <typename T>
@@ -581,6 +598,8 @@ void print_backtrace ()
     }
 
     ros::NodeHandle &nh;
+
+    GLuint kinect_depth_image_pbo;
 
     int normal_method;
     int nr_neighbors;
