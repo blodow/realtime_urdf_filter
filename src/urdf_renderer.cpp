@@ -8,9 +8,9 @@
 
 #include <ros/node_handle.h>
 
-#include <realtime_self_filter/urdf_renderer.h>
+#include <realtime_urdf_filter/urdf_renderer.h>
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
   URDFRenderer::URDFRenderer (std::string model_description, 
                               std::string tf_prefix,
@@ -24,7 +24,7 @@ namespace realtime_self_filter
     , tf_(tf)
   {
     initURDFModel ();
-    tf_.setExtrapolationLimit (ros::Duration (1.1));
+    tf_.setExtrapolationLimit (ros::Duration (5.0));
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +88,9 @@ namespace realtime_self_filter
     {
       boost::shared_ptr<urdf::Mesh> mesh = boost::dynamic_pointer_cast<urdf::Mesh> (link->visual->geometry);
       std::string meshname (mesh->filename);
-      r.reset (new RenderableMesh (meshname));
+      RenderableMesh* rm = new RenderableMesh (meshname);
+      rm->setScale (mesh->scale.x, mesh->scale.y, mesh->scale.z);
+      r.reset (rm);
     }
     r->setLinkName (tf_prefix_+ "/" + link->name);
     urdf::Vector3 origin = link->visual->origin.position;
