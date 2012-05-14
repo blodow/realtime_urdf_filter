@@ -49,9 +49,16 @@ void ShaderWrapper::operator() ()
   glUseProgram (prog);
 }
 
+// convenience function to set a integer uniform value
 void ShaderWrapper::SetUniformVal1i(std::string name, GLint val)
 {
   glUniform1i(glGetUniformLocation(prog, name.c_str()), val);
+}
+
+// convenience function to set a float uniform value
+void ShaderWrapper::SetUniformVal1f(std::string name, GLfloat val)
+{
+  glUniform1f(glGetUniformLocation(prog, name.c_str()), val);
 }
 
 // templated constructor takes two char* arrays for vertex and fragment shader source code

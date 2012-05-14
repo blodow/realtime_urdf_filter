@@ -31,6 +31,7 @@ class ShaderWrapper
     // call operator enables the shader to be used in gl drawing calls
     void operator() ();
     void SetUniformVal1i(std::string name, GLint val);
+    void SetUniformVal1f(std::string name, GLfloat val);
 
   private:
     // templated constructor takes two char* arrays for vertex and fragment shader source code
