@@ -30,7 +30,7 @@
 //
 // -----------------------------------------------------------------------------
 
-#include "realtime_self_filter/FrameBufferObject.h"
+#include "realtime_urdf_filter/FrameBufferObject.h"
 #include "string.h"
 #include "stdio.h"
 

@@ -1,7 +1,7 @@
 #define GL3_PROTOTYPES 1
 #include <GL3/gl3.h>
 #include <GL/freeglut.h>
-#include <realtime_self_filter/renderable.h>
+#include <realtime_urdf_filter/renderable.h>
 #include <resource_retriever/retriever.h>
 #include <assimp/assimp.hpp>
 #include <assimp/aiScene.h>
@@ -9,7 +9,7 @@
 #include <assimp/IOStream.h>
 #include <assimp/IOSystem.h>
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
   // common methods
   void Renderable::setLinkName (std::string n)
@@ -93,8 +93,6 @@ namespace realtime_self_filter
 
   void RenderableBox::createBoxVBO ()
   {
-    int num_vert = 20; 
-
     const GLfloat boxvertices[] = 
       {0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Top Right Of The Quad (Top)
       -0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Top Left Of The Quad (Top)
@@ -347,9 +345,17 @@ namespace realtime_self_filter
     meshes[index].init (vertices, indices);
   }
 
+  void RenderableMesh::setScale (float x, float y, float z)
+  {
+    scale_x = x;
+    scale_y = y;
+    scale_z = z;
+  }
+
   void RenderableMesh::render ()
   {
     applyTransform ();
+    glScalef (scale_x, scale_y, scale_z);
     glEnableVertexAttribArray (0);
     glEnableVertexAttribArray (2);
 

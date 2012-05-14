@@ -9,7 +9,7 @@
 struct aiScene;
 struct aiMesh;
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
 
 struct Renderable
@@ -17,6 +17,7 @@ struct Renderable
   void setLinkName (std::string n);
   virtual void render () = 0;
   std::string name;
+
 //  tf::Vector3 offset_t;
 //  tf::Quaternion offset_q;
 //  tf::Vector3 t;
@@ -68,6 +69,7 @@ struct RenderableMesh : public Renderable
   RenderableMesh (std::string meshname);
 
   virtual void render ();
+  void setScale (float x, float y, float z);
 
 private:
   struct Vertex
@@ -94,6 +96,9 @@ private:
   void initMesh (unsigned int i, const aiMesh* mesh);
 
   std::vector<SubMesh> meshes;
+  double scale_x;
+  double scale_y;
+  double scale_z;
 };
 
 

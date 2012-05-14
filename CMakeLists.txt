@@ -38,13 +38,12 @@ rosbuild_add_library (FBO src/FrameBufferObject.cpp)
 target_link_libraries (FBO GLEW)
 rosbuild_add_library (shaderwrapper src/shader_wrapper.cpp)
 
-rosbuild_add_executable (realtime_self_filter 
-  src/realtime_self_filter.cpp 
+rosbuild_add_executable (realtime_urdf_filter 
+  src/realtime_urdf_filter.cpp 
   src/urdf_renderer.cpp 
   src/renderable.cpp 
-    #src/offscreen_rendering.cpp
   )
-target_link_libraries (realtime_self_filter 
+target_link_libraries (realtime_urdf_filter 
   ${OPENGL_LIBRARIES} ${freeglut_LIBRARY} 
   ${OpenCV_LIBS} 
   FBO shaderwrapper)

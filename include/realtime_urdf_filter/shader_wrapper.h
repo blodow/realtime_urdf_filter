@@ -6,7 +6,7 @@
 #define GL3_PROTOTYPES 1
 #include <GL3/gl3.h>
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
 
 // this class wraps loading, compiling and enabling shader programs
@@ -30,6 +30,7 @@ class ShaderWrapper
 
     // call operator enables the shader to be used in gl drawing calls
     void operator() ();
+    void SetUniformVal1i(std::string name, GLint val);
 
   private:
     // templated constructor takes two char* arrays for vertex and fragment shader source code

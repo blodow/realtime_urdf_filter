@@ -3,12 +3,12 @@
 
 #include <urdf/model.h>
 #include <tf/transform_listener.h>
-#include <realtime_self_filter/renderable.h>
+#include <realtime_urdf_filter/renderable.h>
 
 // forward declares
 namespace ros {class NodeHandle;}
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
 
 class URDFRenderer

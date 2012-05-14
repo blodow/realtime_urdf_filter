@@ -1,11 +1,11 @@
-#include <realtime_self_filter/shader_wrapper.h>
+#include <realtime_urdf_filter/shader_wrapper.h>
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
 #include <resource_retriever/retriever.h>
 #include <GL/glu.h>
 
-namespace realtime_self_filter
+namespace realtime_urdf_filter
 {
 // named constructor to compile from source
 template <int L1, int L2>
@@ -47,6 +47,11 @@ ShaderWrapper::operator GLuint ()
 void ShaderWrapper::operator() ()
 {
   glUseProgram (prog);
+}
+
+void ShaderWrapper::SetUniformVal1i(std::string name, GLint val)
+{
+  glUniform1i(glGetUniformLocation(prog, name.c_str()), val);
 }
 
 // templated constructor takes two char* arrays for vertex and fragment shader source code

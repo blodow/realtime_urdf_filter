@@ -1,8 +1,7 @@
-// to do the urdf / depth image intersection
 #include <pthread.h>
 #include <execinfo.h>
 
-#include "realtime_self_filter/FrameBufferObject.h"
+#include "realtime_urdf_filter/FrameBufferObject.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
@@ -13,42 +12,46 @@
 #include <iostream>
 
 #include <ros/node_handle.h>
-#include "realtime_self_filter/urdf_renderer.h"
-#include <realtime_self_filter/shader_wrapper.h>
-#include <realtime_self_filter/rgbd_subscriber.h>
+#include "realtime_urdf_filter/urdf_renderer.h"
+#include <realtime_urdf_filter/shader_wrapper.h>
+#include <realtime_urdf_filter/depth_and_info_subscriber.h>
 
 #include <GL/freeglut.h>
 
-class RealtimeSelfFilter
+//#define USE_OWN_CALIBRATION
+
+class RealtimeURDFFilter
 {
   public:
-    RealtimeSelfFilter (ros::NodeHandle &nh, int argc, char **argv)
+    // constructor. sets up ros and reads in parameters
+    RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **argv)
       : nh(nh)
-      , kinect_depth_image_pbo (GL_INVALID_VALUE)
-      , normal_method(1)
-      , nr_neighbors (36)
-      , radius_cm (5)
-      , normal_viz_step(200)
       , fbo_initialized_(false)
-      , gl_image_needed (false)
-      , gl_image_available (false)
+      , kinect_depth_image_pbo (GL_INVALID_VALUE)
+      , far_plane (8)
+      , near_plane (0.1)
       , argc (argc), argv(argv)
     {
+      // get fixed frame name
       XmlRpc::XmlRpcValue v;
       nh.getParam ("fixed_frame", v);
       ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeString && "fixed_frame paramter!");
       fixed_frame_ = (std::string)v;
       ROS_INFO ("using fixed frame %s", fixed_frame_.c_str ());
 
+      // get camera frame name 
+      // TODO: read this from ROS message
       nh.getParam ("camera_frame", v);
       ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeString && "need a camera_frame paramter!");
       cam_frame_ = (std::string)v;
       ROS_INFO ("using camera frame %s", cam_frame_.c_str ());
 
+      // read additional camera offset (TODO: make optional)
       nh.getParam ("camera_offset", v);
       ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeStruct && "need a camera_offset paramter!");
       ROS_ASSERT (v.hasMember ("translation") && v.hasMember ("rotation") && "camera offset needs a translation and rotation parameter!");
 
+      // translation
       XmlRpc::XmlRpcValue vec = v["translation"];
       ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 3 && "camera_offset.translation parameter must be a 3-value array!");
       ROS_INFO ("using camera translational offset: %f %f %f",
@@ -58,15 +61,15 @@ class RealtimeSelfFilter
           );
       camera_offset_t_ = tf::Vector3((double)vec[0], (double)vec[1], (double)vec[2]);
 
+      // rotation
       vec = v["rotation"];
       ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 4 && "camera_offset.rotation parameter must be a 4-value array [x y z w]!");
       ROS_INFO ("using camera rotational offset: %f %f %f %f", (double)vec[0], (double)vec[1], (double)vec[2], (double)vec[3]);
       camera_offset_q_ = tf::Quaternion((double)vec[0], (double)vec[1], (double)vec[2], (double)vec[3]);
-
     }
-  
-    void 
-      loadModels ()
+ 
+    // loads URDF models
+    void loadModels ()
     {
       XmlRpc::XmlRpcValue v;
       nh.getParam ("models", v);
@@ -106,7 +109,8 @@ class RealtimeSelfFilter
           }
 
           // finally, set the model description so we can later parse it.
-          renderers.push_back (new realtime_self_filter::URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_));
+          ROS_INFO ("Loading URDF model: %s", description_param.c_str ());
+          renderers.push_back (new realtime_urdf_filter::URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_));
         }
       }
       else
@@ -115,18 +119,7 @@ class RealtimeSelfFilter
       }
     }
 
-void print_backtrace ()
-{
-  void *array[100];
-  size_t size;
-
-  // get void*'s for all entries on the stack
-  size = backtrace(array, 100);
-
-  // print out all the frames to stderr
-  backtrace_symbols_fd(array, size, 2);
-}
-
+    // helper function to get current time
     double getTime ()
     {
       timeval current_time;
@@ -134,133 +127,119 @@ void print_backtrace ()
       return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
     }
 
+    // callback function that gets ROS images and does everything
     void filter_callback
-         (cv::Mat1f& depth_image,
-          cv::Mat3b& rgb_image,
-          cv::Mat1b& grey_image,
-          cv::Matx33d& camera_matrix,
-          std_msgs::Header header )
-    //template <template <typename> class Storage> void 
-    //cloud_cb (const boost::shared_ptr<openni_wrapper::Image>& image,
-    //          const boost::shared_ptr<openni_wrapper::DepthImage>& depth_image, 
-    //          float constant)
+         (const sensor_msgs::ImageConstPtr& ros_depth_image,
+          const sensor_msgs::CameraInfo::ConstPtr& camera_info)
     {
-      createPBOFromDepthImage (kinect_depth_image_pbo, depth_image);
-      // TIMING
+      // convert to OpenCV cv::Mat
+      cv_bridge::CvImageConstPtr orig_depth_img = cv_bridge::toCvCopy (ros_depth_image, sensor_msgs::image_encodings::TYPE_32FC1);
+      cv::Mat1f depth_image = orig_depth_img->image;
+
+      // Make sure initGL is called from the same thread that calls render ()
+      static bool first = true;
+      if (first)
+      {
+        width = depth_image.cols;
+        height = depth_image.rows;
+        initGL ();
+        first = false;
+      }
+      if (width != depth_image.cols || height != depth_image.rows)
+      {
+        // TODO: reinitialize FBO
+        ROS_ERROR_ONCE ("image size has changed, please restart!");
+        return;
+      }
+
+      // Timing
       static unsigned count = 0;
       static double last = getTime ();
       double now = getTime ();
 
-      //if (++count == 30 || (now - last) > 5)
+      if (++count == 30 || (now - last) > 5)
       {
-        std::cout << std::endl;
-        count = 1;
-        std::cout << "Average framerate: " << double(count)/double(now - last) << " Hz --- ";
+        std::cout << "Average framerate: " << std::setprecision(2) << double(count)/double(now - last) << " Hz" << std::endl;
         last = now;
       }
 
-      // request a new gl image
-      {
-        boost::lock_guard<boost::mutex> lock(mutex_gl_image_needed);
-        gl_image_needed=true;
-      }
-      std::cerr << "callback: notifying render () to run." << std::endl;
-      cond_gl_image_needed.notify_all ();
+      // get depth_image into OpenGL texture buffer
+      textureBufferFromDepthImage (depth_image);
 
-      boost::unique_lock<boost::mutex> lock(mutex_gl_image_available);
-      std::cerr << "callback: waiting for render () to finish." << std::endl;
-      while (!gl_image_available)
-        cond_gl_image_available.wait(lock);
-      gl_image_available = false;
-      std::cerr << "callback: render () finished." << std::endl;
+      // render everything
+      render(camera_info);
 
-      boost::mutex::scoped_lock gl_image_lock (gl_image_mutex);
-
-      //typename Storage<float>::type urdf_inliers;
-      //realtime_self_filter::BackgroundSubtraction bs;
-      //int num_urdf_inliers = bs.fromGLDepthImage<Storage> (depth_image, interop_cuda_pointer_depth_, constant, 0.5f, urdf_inliers, false, 1);
-      //std::cerr<< "NUM INLIERS: " << num_urdf_inliers << std::endl;
-
-      //typename ImageType<Storage>::type bla_image;
-      //ImageType<Storage>::createContinuous (480, 640, CV_8UC4, bla_image);
-      //typename StoragePointer<Storage,char4>::type bla_ptr = typename StoragePointer<Storage,char4>::type ((char4*)bla_image.data);
-      //thrust::copy (interop_cuda_pointer_normals_, interop_cuda_pointer_normals_ + 640 * 480, bla_ptr);
-
-      //float min, max;
-      //thrust::device_vector <float> vec (interop_cuda_pointer_depth_, interop_cuda_pointer_depth_ + 640 * 480);
-      
-      //thrust::copy (urdf_inliers.begin(), urdf_inliers.end(), typename StoragePointer<Storage,float>::type ((float*)bla_image.data));
-
-      //cv::imshow ("URDF Models Depth Component", cv::Mat (bla_image));
-      cv::waitKey (2);
-
-      //TODO: compute transformation between urdf model and kinect cloud.
+      // publish processed depth image and image mask
+      // glutPostRedisplay();
+      // glutMainLoopEvent ();
     }
 
-    void createPBOFromDepthImage (GLuint &pbo, cv::Mat depth_image)
+    void textureBufferFromDepthImage (cv::Mat1f depth_image)
     {
-      assert (depth_image.cols = depth_image.step);
-      if (pbo == GL_INVALID_VALUE)
-      {
-        glGenBuffers (1, &pbo);
-      }
-      glBindBuffer (GL_ARRAY_BUFFER, pbo);
+      // Host buffer to hold depth pixel data
+      unsigned char* buffer;
 
-      // buffer data
-      int size_in_bytes = depth_image.total()*depth_image.elemSize();
-      glBufferData (GL_ARRAY_BUFFER, size_in_bytes, depth_image.data, GL_DYNAMIC_DRAW);
+      // get pixel data from cv::Mat as one continuous buffer
+      int row_size = depth_image.cols * depth_image.elemSize();
+      if (depth_image.isContinuous())
+      {
+        buffer = depth_image.data;
+      }
+      else
+      {
+        buffer = (unsigned char*) malloc (row_size * depth_image.rows);
+        for (int i = 0; i < depth_image.rows; i++)
+          memcpy ((void*)(buffer + i * row_size), (void*) &depth_image.data[i], row_size);
+      }
+
+      // check if we already have a PBO and Texture Buffer
+      if (kinect_depth_image_pbo == GL_INVALID_VALUE)
+      {
+        glGenBuffers (1, &kinect_depth_image_pbo);
+        glGenTextures (1, &kinectTexture);
+      }
+
+      glBindBuffer (GL_ARRAY_BUFFER, kinect_depth_image_pbo);
+
+      // upload buffer data to GPU
+      int size_in_bytes = row_size * depth_image.rows;
+      glBufferData (GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
       glBindBuffer (GL_ARRAY_BUFFER, 0);
+
+      // assign PBO to Texture Buffer
+      glBindTexture(GL_TEXTURE_BUFFER, kinectTexture);
+      glTexBuffer (GL_TEXTURE_BUFFER, GL_R32F, kinect_depth_image_pbo);
     }
 
-//    template <typename T>
-//    void
-//      createPBO (GLuint &pbo, unsigned int size_tex_data, thrust::device_ptr<T> &cuda_pointer)
-//    {
-//      // create buffer object
-//      glGenBuffers (1, &pbo);
-//      glBindBuffer (GL_ARRAY_BUFFER, pbo);
-//
-//      // buffer data
-//      glBufferData (GL_ARRAY_BUFFER, size_tex_data, NULL, GL_DYNAMIC_DRAW);
-//      glBindBuffer (GL_ARRAY_BUFFER, 0);
-//
-////      // register buffer with cuda
-////      cudaGLRegisterBufferObject(pbo);
-////      T *raw_ptr = 0;
-////      cudaGLMapBufferObject((void**)&raw_ptr, pbo);
-////      cuda_pointer = thrust::device_pointer_cast(raw_ptr);
-//    }
-  
+    // set up OpenGL stuff
     void initGL ()
     {
       //TODO: change this to use an offscreen pbuffer, so no window is necessary
       glutInit (&argc, argv);
 
-      glutInitWindowSize (640, 480);
-      glutInitWindowPosition(200, 100);
+      // the window will show 3x2 grid of images
+      glutInitWindowSize (960, 480);
       glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
-      glutCreateWindow ("TestFramebufferObject");
+      glutCreateWindow ("Realtime URDF Filter Debug Window");
 
+      // initialize glew library
       GLenum err = glewInit();
       if (GLEW_OK != err)
       {
         std::cout << "ERROR: could not initialize GLEW!" << std::endl;
       }
 
-      //interop_gl_buffers_.resize (2, GL_INVALID_VALUE);
-
-      //createPBO (interop_gl_buffers_[0], 640 * 480 * 4 * sizeof(GLubyte), interop_cuda_pointer_normals_);
-      //createPBO (interop_gl_buffers_[1], 640 * 480 * sizeof(GLfloat), interop_cuda_pointer_depth_);
-
+      // set up FBO and load URDF models + meshes onto GPU
       initFrameBufferObject ();
       loadModels ();
     }
 
+    // set up FBO
     void initFrameBufferObject ()
     {
       fbo_ = new FramebufferObject ("rgba=4x8t depth=32t stencil=t");
 
-      fbo_->initialize (640, 480);
+      fbo_->initialize (width, height);
       fbo_initialized_ = true;
 
       GLenum err = glGetError();
@@ -268,14 +247,64 @@ void print_backtrace ()
         printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
     }
 
-    void render ()
+    // compute Projection matrix from CameraInfo message
+    void getProjectionMatrix (const sensor_msgs::CameraInfo::ConstPtr& current_caminfo, btScalar* glTf)
     {
-      // lock gl_image_mutex and "produce" one image
-      boost::mutex::scoped_lock gl_image_lock(gl_image_mutex);
+      sensor_msgs::CameraInfo::ConstPtr info = current_caminfo;
 
-      //cudaGLUnmapBufferObject(interop_gl_buffers_[0]);
-      //cudaGLUnmapBufferObject(interop_gl_buffers_[1]);
+      if (!info)
+        return;
 
+      tf::Vector3 position;
+      tf::Quaternion orientation;
+
+#ifdef USE_OWN_CALIBRATION
+      float P[12];
+      P[0] = 585.260; P[1] = 0.0;     P[2]  = 317.387; P[3]  = 0.0;
+      P[4] = 0.0;     P[5] = 585.028; P[6]  = 239.264; P[7]  = 0.0;
+      P[8] = 0.0;     P[9] = 0.0;     P[10] = 1.0;     P[11] = 0.0;
+
+      double fx = P[0];
+      double fy = P[5];
+      double cx = P[2];
+      double cy = P[6];
+#else
+      double fx = info->P[0] * 0.5;
+      double fy = info->P[5] * 0.5;
+      double cx = info->P[2] * 0.5;
+      double cy = (info->P[6]) * 0.5 - 48;
+ 
+      // TODO: check if this does the right thing with respect to registered depth / camera info
+      // Add the camera's translation relative to the left camera (from P[3]);
+      //double tx = -1 * (info->P[3] / fx);
+      //tf::Vector3 right = orientation * tf::Vector3 (1,0,0);
+      //position = position + (right * tx);
+
+      //double ty = -1 * (info->P[7] / fy);
+      //tf::Vector3 down = orientation * tf::Vector3 (0,1,0);
+      //position = position + (down * ty);
+
+#endif
+
+      for (unsigned int i = 0; i < 16; ++i)
+        glTf[i] = 0.0;
+
+      // calculate the projection matrix
+      // NOTE: this minus is there to flip the x-axis of the image.
+      glTf[0]= -2.0 * fx / width;
+      glTf[5]= 2.0 * fy / height;
+
+      glTf[8]= 2.0 * (0.5 - cx / width);
+      glTf[9]= 2.0 * (cy / height - 0.5);
+
+      glTf[10]= - (far_plane + near_plane) / (far_plane - near_plane);
+      glTf[14]= -2.0 * far_plane * near_plane / (far_plane - near_plane);
+
+      glTf[11]= -1;
+    }
+
+    void render (const sensor_msgs::CameraInfo::ConstPtr& cam_info)
+    {
       if (!fbo_initialized_)
         return;
 
@@ -286,6 +315,7 @@ void print_backtrace ()
         GL_COLOR_ATTACHMENT3_EXT
       };
 
+      // get transformation from camera to "fixed frame"
       tf::StampedTransform t;
       try
       {
@@ -294,11 +324,8 @@ void print_backtrace ()
       catch (tf::TransformException ex)
       {
         ROS_ERROR("%s",ex.what());
+        return;
       }
-
-      // -----------------------------------------------------------------------
-      // -----------------------------------------------------------------------
-      //	1. render teapot into color, depth and stencil buffer
 
       GLenum err = glGetError();
       if(err != GL_NO_ERROR)
@@ -306,20 +333,21 @@ void print_backtrace ()
 
       glPushAttrib(GL_ALL_ATTRIB_BITS);
       glEnable(GL_NORMALIZE);
- 
+
+      // render into FBO
       fbo_->beginCapture();
 
-      static realtime_self_filter::ShaderWrapper shader = realtime_self_filter::ShaderWrapper::fromFiles
-        ("package://realtime_self_filter/include/shaders/test1.vert", 
-         "package://realtime_self_filter/include/shaders/test1.frag");
-      err = glGetError();
-      if(err != GL_NO_ERROR)
-        printf("before calling glUseProgram: OpenGL ERROR: %s\n", gluErrorString(err));
+      // create shader programs
+      static realtime_urdf_filter::ShaderWrapper shader = realtime_urdf_filter::ShaderWrapper::fromFiles
+        ("package://realtime_urdf_filter/include/shaders/test1.vert", 
+         "package://realtime_urdf_filter/include/shaders/test1.frag");
 
-      shader ();
       err = glGetError();
       if(err != GL_NO_ERROR)
-        printf("after calling glUseProgram: OpenGL ERROR: %s\n", gluErrorString(err));
+        printf("OpenGL ERROR compiling shaders: %s\n", gluErrorString(err));
+      
+      // enable shader for this frame
+      shader ();
 
       glDrawBuffers(sizeof(buffers) / sizeof(GLenum), buffers);
 
@@ -328,6 +356,7 @@ void print_backtrace ()
       glClearStencil(0x0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+      // set up stencil buffer etc.
       glEnable(GL_STENCIL_TEST);
       glStencilFunc(GL_ALWAYS, 0x1, 0x1);
       glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -336,56 +365,57 @@ void print_backtrace ()
       glDisable(GL_TEXTURE_2D);
       fbo_->disableTextureTarget();
 
-      // setup camera
+      // setup camera projection
       glMatrixMode (GL_PROJECTION);
       glLoadIdentity();
-      float near_clip = 0.1;
-      float far_clip = 100;
-      float width = 640;
-      float height = 480;
-      float fx = 525; // P[0]
-      float fy = 525; // P[5]
-      float cx = 319.5; // P[2]
-      float cy = 239.5; // P[6]
-      float f_width = near_clip * width / fx;
-      float f_height = near_clip * height / fy;
 
-      //note: we swap left and right frustrum to swap handedness of ROS vs. OpenGL
-      glFrustum (  f_width  * (1.0f - cx / width),
-                 - f_width  *         cx / width,
-                 - f_height * (1.0f - cy / height),
-                   f_height *         cy / height,
-                 near_clip,
-                 far_clip);
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-      gluLookAt (0,0,0, 0,0,1, 0,1,0);
-
-      tf::Transform transform (camera_offset_q_, camera_offset_t_);
+      // load camera info into OpenGL camera matrix
       btScalar glTf[16];
-      transform.getOpenGLMatrix(glTf);
+      getProjectionMatrix (cam_info, glTf);
       glMultMatrixd((GLdouble*)glTf);
 
+      // setup camera position
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+      // kinect has x right, y down, z into image
+      gluLookAt (0,0,0, 0,0,1, 0,1,0);
+      
+      // apply user-defined camera offset transformation (launch file)
+      tf::Transform transform (camera_offset_q_, camera_offset_t_);
+      transform.inverse().getOpenGLMatrix(glTf);
+      glMultMatrixd((GLdouble*)glTf);
+
+      // apply camera to "fixed frame" transform (world coordinates)
       t.getOpenGLMatrix(glTf);
       glMultMatrixd((GLdouble*)glTf);
 
-      BOOST_FOREACH (realtime_self_filter::URDFRenderer* r, renderers)
+      // make texture with depth image available in shader
+      glActiveTexture (GL_TEXTURE0);
+      GLuint kinectTexID = 0;
+      shader.SetUniformVal1i (std::string("kinectTexture"), kinectTexID);
+      shader.SetUniformVal1i (std::string("width"), int(width));
+      shader.SetUniformVal1i (std::string("height"), int(height));
+      glBindTexture (GL_TEXTURE_BUFFER, kinectTexture);
+
+      // render every renderable / urdf model
+      BOOST_FOREACH (realtime_urdf_filter::URDFRenderer* r, renderers)
         r->render ();
 
+      // disable shader
       glUseProgram((GLuint)NULL);
       
       fbo_->endCapture();
-
       glPopAttrib();
 
       // -----------------------------------------------------------------------
       // -----------------------------------------------------------------------
-      //	2. render red plane only where stencil is 1
+      //	from here on folloes mainly display code 
+      //	(not necessary for offscreen rendering)
 
+      // use stencil buffer to draw a red / blue mask
       glPushAttrib(GL_ALL_ATTRIB_BITS);
 
       fbo_->beginCapture();
-
       glDrawBuffer(GL_COLOR_ATTACHMENT3_EXT);
 
       glEnable(GL_STENCIL_TEST);
@@ -451,9 +481,9 @@ void print_backtrace ()
 
       glPopAttrib();
 
-      // TODO: code to render the offscreen buffer
       // -----------------------------------------------------------------------
       // -----------------------------------------------------------------------
+      // render all color buffer attachments into window
 
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -556,79 +586,42 @@ void print_backtrace ()
 //      float *raw_ptr_d = 0;
 //      cudaGLMapBufferObject((void**)&raw_ptr_d, interop_gl_buffers_[1]);
 //      interop_cuda_pointer_depth_ = thrust::device_pointer_cast(raw_ptr_d);
-     
-      {
-        boost::lock_guard<boost::mutex> lock(mutex_gl_image_available);
-        gl_image_available=true;
-      }
 
+      // ok, finished with all OpenGL, let's swap!
       glutSwapBuffers ();
       glutPostRedisplay();
       glutMainLoopEvent ();
-
-      // make sure that depth_range is [0;1]
-      GLfloat depth_range[2];
-      glGetFloatv (GL_DEPTH_RANGE, &depth_range[0]);
-
-      std::cerr << "render: notify callback. " << depth_range[0] << " -- " << depth_range[1] << std::endl;
-      cond_gl_image_available.notify_all ();
     }
     
-    void 
-    run ()
-    {
-      initGL ();
-        
-      //TODO subscribe etc
-      realtime_self_filter::RgbdSubscriber sub (nh, boost::bind (&RealtimeSelfFilter::filter_callback, this, _1, _2, _3, _4, _5));
-     
-      while (nh.ok())
-      {
-        // wait for "data needed!"
-        boost::unique_lock<boost::mutex> lock (mutex_gl_image_needed);
-        while (!gl_image_needed && nh.ok ())
-          cond_gl_image_needed.wait(lock);
-        
-        render();
-        gl_image_needed = false;
-
-        glutPostRedisplay();
-        glutMainLoopEvent ();
-      }
-    }
-
+  protected:
+    // ROS objects
     ros::NodeHandle &nh;
+    tf::TransformListener tf_;
 
+    // rendering objects
+    FramebufferObject *fbo_;
+    bool fbo_initialized_;
     GLuint kinect_depth_image_pbo;
+    GLuint kinectTexture;
 
-    int normal_method;
-    int nr_neighbors;
-    int radius_cm;
-    int normal_viz_step;
-    std::vector<realtime_self_filter::URDFRenderer*> renderers;
+    // vector of renderables
+    std::vector<realtime_urdf_filter::URDFRenderer*> renderers;
 
+    // parameters from launch file
     tf::Vector3 camera_offset_t_;
     tf::Quaternion camera_offset_q_;
     std::string cam_frame_;
     std::string fixed_frame_;
-    FramebufferObject *fbo_;
-    bool fbo_initialized_;
-    tf::TransformListener tf_;
 
-    // variables holding the CUDA/OpenGL interop buffer info
-    //std::vector<GLuint> interop_gl_buffers_;
-    //thrust::device_ptr<float> interop_cuda_pointer_depth_;
-    //thrust::device_ptr<char4> interop_cuda_pointer_normals_;
+    // image size
+    GLint width;
+    GLint height;
 
-    // these are needed for the synchronous across-thread-boundaries call of render() from cloud_cb()
-    bool gl_image_needed;
-    bool gl_image_available;
-    boost::mutex mutex_gl_image_needed;
-    boost::mutex mutex_gl_image_available;
-    boost::condition_variable cond_gl_image_needed;
-    boost::condition_variable cond_gl_image_available;
-    boost::mutex gl_image_mutex;
+    // OpenGL virtual camera setup
+    double far_plane;
+    double near_plane;
 
+    // neccesary for glutInit()..
     int argc;
     char **argv;
 };
@@ -636,12 +629,16 @@ void print_backtrace ()
 int 
 main (int argc, char **argv)
 {
-  ros::init (argc, argv, "realtime_self_filter");
-
+  // set up ROS
+  ros::init (argc, argv, "realtime_urdf_filter");
   ros::NodeHandle nh ("~");
 
-  RealtimeSelfFilter f(nh, argc, argv);
-  f.run ();
+  // create RealtimeURDFFilter and subcribe to ROS
+  RealtimeURDFFilter f(nh, argc, argv);
+  realtime_urdf_filter::DepthAndInfoSubscriber sub (nh, boost::bind (&RealtimeURDFFilter::filter_callback, &f, _1, _2));
+
+  // spin that shit!
+  ros::spin ();
 
   return 0;
 }

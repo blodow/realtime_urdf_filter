@@ -1,0 +1,25 @@
+<launch>
+    <node pkg="realtime_urdf_filter" type="realtime_urdf_filter" name="realtime_urdf_filter" output="screen" >
+    <remap from="~output" to="/self_filtered_depth_image" />
+    <remap from="/camera/depth_registered/image" to="/camera/depth_registered/image"/>
+    <rosparam>
+      fixed_frame: /world
+      camera_frame: /camera_rgb_optical_frame
+      camera_offset:
+        translation: [0.0, 0.0, 0.0]
+        rotation:    [0.0, 0.0, 0.0, 1.0]
+      models: 
+        - model: "robot_description"
+          tf_prefix: "/JIMI"
+        - model: "robot_description"
+          tf_prefix: "/ERIC"
+        - model: "table_description"
+          tf_prefix: ""
+        - model: "gripper_description"
+          tf_prefix: "/JIMI"
+        - model: "gripper_description"
+          tf_prefix: "/ERIC"
+    </rosparam>
+  </node>
+</launch>
+
