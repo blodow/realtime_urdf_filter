@@ -11,7 +11,7 @@
   
   <depend package="urdf" />
   <depend package="tf" />
-  <depend package="openni" />
+  <!--depend package="openni" /-->
   <depend package="resource_retriever" />
   <depend package="assimp" />
   <depend package="sensor_msgs" />

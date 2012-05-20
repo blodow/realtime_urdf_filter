@@ -50,8 +50,10 @@ target_link_libraries (urdf_filter
   FBO
   shaderwrapper)
 
+include_directories(/home/f_asimov/packages/openni/usr/include/ni/ /home/f_asimov/packages/nite/Include/)
 rosbuild_add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
-target_link_libraries (urdf_filtered_tracker urdf_filter)
+target_link_libraries (urdf_filtered_tracker urdf_filter
+   /home/f_asimov/packages/openni/usr/lib/libOpenNI.so)
 
 rosbuild_add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
 target_link_libraries (realtime_urdf_filter urdf_filter)

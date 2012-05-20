@@ -474,7 +474,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 				//----------------------------------------------------------
 
 				if(!success) 
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("f"));
 					
 			} else {
 
@@ -552,7 +552,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 				//----------------------------------------------------------
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("g"));
 
 			}
 
@@ -602,7 +602,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 											_depthAttachmentID, 0);
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("b"));
 
 			} else {				
 
@@ -622,7 +622,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("c"));
 
 			}
 
@@ -667,7 +667,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 											_depthAttachmentID, 0);
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("d"));
 
 			} else {
 
@@ -685,7 +685,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus()) {
-					printFramebufferStatus();
+					printFramebufferStatus(std::string("e"));
 				}
 
 			}
@@ -1066,7 +1066,7 @@ FramebufferObject::checkFramebufferStatus(void) {
 // -----------------------------------------------------------------------------
 
 void
-FramebufferObject::printFramebufferStatus(void) {
+FramebufferObject::printFramebufferStatus(std::string tag) {
 
 	switch(_framebufferStatus) {
 
@@ -1079,7 +1079,7 @@ FramebufferObject::printFramebufferStatus(void) {
 			break;
 
 		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << endl;
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT (" << tag << ")" << endl;
 			break; 
 
 		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT: 

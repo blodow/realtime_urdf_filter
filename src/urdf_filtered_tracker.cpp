@@ -5,6 +5,7 @@
 #include <ros/node_handle.h>
 #include <ros/package.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/tfMessage.h>
 
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
@@ -118,6 +119,13 @@ public:
     nRetVal = g_Context.StartGeneratingAll();
     CHECK_RC(nRetVal, "StartGenerating");
 
+    tf_pub_ = nh_.advertise<tf::tfMessage> ("/tf",1);
+
+    setupURDFSelfFilter ();
+  }
+
+  void setupURDFSelfFilter ()
+  {
     filter = new realtime_urdf_filter::RealtimeURDFFilter (nh_, argc_, argv_);
     filter->width_ = 640;
     filter->height_ = 480;
@@ -163,9 +171,37 @@ public:
       }
     }
 
-    double glTf[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+    float P[12];
+    P[0] = 585.260; P[1] = 0.0;     P[2]  = 317.387; P[3]  = 0.0;
+    P[4] = 0.0;     P[5] = 585.028; P[6]  = 239.264; P[7]  = 0.0;
+    P[8] = 0.0;     P[9] = 0.0;     P[10] = 1.0;     P[11] = 0.0;
+  
+    double fx = P[0];
+    double fy = P[5];
+    double cx = P[2];
+    double cy = P[6];
+    double far_plane_ = 8;
+    double near_plane_ = 0.1;
+  
+    double glTf[16];
+    for (unsigned int i = 0; i < 16; ++i)
+      glTf[i] = 0.0;
 
-    filter->filter ((unsigned char*)buffer, glTf, depthMap.XRes (), depthMap.YRes ());
+    // calculate the projection matrix
+    // NOTE: this minus is there to flip the x-axis of the image.
+    glTf[0]= -2.0 * fx / depthMap.XRes();
+    glTf[5]= 2.0 * fy / depthMap.YRes();
+
+    glTf[8]= 2.0 * (0.5 - cx / depthMap.XRes());
+    glTf[9]= 2.0 * (cy / depthMap.YRes() - 0.5);
+
+    glTf[10]= - (far_plane_ + near_plane_) / (far_plane_ - near_plane_);
+    glTf[14]= -2.0 * far_plane_ * near_plane_ / (far_plane_ - near_plane_);
+
+    glTf[11]= -1;
+
+
+    filter->filter ((unsigned char*)buffer, glTf, depthMap.XRes(), depthMap.YRes());
 
     GLfloat* masked_depth = filter->getMaskedDepth();
 
@@ -287,14 +323,15 @@ public:
     }
   }
 
-  void publishMatToFloor(double x, double y, double z, double qw, double qx, double qy, double qz, std::string const& frame_id, std::string const& child_frame_id)
+  geometry_msgs::TransformStamped 
+    getMatToFloorTF(double x, double y, double z, double qw, double qx, double qy, double qz, std::string const& frame_id, std::string const& child_frame_id)
   {
-    static tf::TransformBroadcaster br;
-
     tf::Transform transform;
     transform.setOrigin(tf::Vector3(x, y, z));
     transform.setRotation(tf::Quaternion(qx, qy, qz, qw));
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), frame_id, child_frame_id));
+    geometry_msgs::TransformStamped msg;
+    transformStampedTFToMsg (tf::StampedTransform(transform, ros::Time::now(), frame_id, child_frame_id), msg);
+    return msg;
   }
 
   void publishTransforms (std::string const& frame_id)
@@ -303,7 +340,10 @@ public:
     XnUInt16 users_count = 15;
     g_UserGenerator.GetUsers (users, users_count);
 
-    for (int i = 0; i < users_count; ++i) {
+    tf::tfMessage tfs;
+
+    for (int i = 0; i < users_count; ++i)
+    {
       XnUserID user = users[i];
       if (!g_UserGenerator.GetSkeletonCap().IsTracking (user))
         continue;
@@ -311,35 +351,37 @@ public:
       std::cerr << "publishTransforms: " << __FILE__ << " : " << __LINE__ << std::endl;
 
       // TODO: this only works for the DLR demo right now
-      publishMatToFloor (0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, "/floor", frame_id);
+    ///  tfs.transforms.push_back (getMatToFloorTF (0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, "/floor", frame_id));
 
-      publishTransform (user, XN_SKEL_HEAD,           frame_id, "head_1");
-      publishTransform (user, XN_SKEL_NECK,           frame_id, "neck_1");
-      publishTransform (user, XN_SKEL_TORSO,          frame_id, "torso_1");
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_HEAD,           frame_id, "head_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_NECK,           frame_id, "neck_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_TORSO,          frame_id, "torso_1"));
 
-      publishTransform (user, XN_SKEL_LEFT_SHOULDER,  frame_id, "left_shoulder_1");
-      publishTransform (user, XN_SKEL_LEFT_ELBOW,     frame_id, "left_elbow_1");
-      publishTransform (user, XN_SKEL_LEFT_HAND,      frame_id, "left_hand_1");
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_SHOULDER,  frame_id, "left_shoulder_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_ELBOW,     frame_id, "left_elbow_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HAND,      frame_id, "left_hand_1"));
 
-      publishTransform (user, XN_SKEL_RIGHT_SHOULDER, frame_id, "right_shoulder_1");
-      publishTransform (user, XN_SKEL_RIGHT_ELBOW,    frame_id, "right_elbow_1");
-      publishTransform (user, XN_SKEL_RIGHT_HAND,     frame_id, "right_hand_1");
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_SHOULDER, frame_id, "right_shoulder_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_ELBOW,    frame_id, "right_elbow_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HAND,     frame_id, "right_hand_1"));
 
-      publishTransform (user, XN_SKEL_LEFT_HIP,       frame_id, "left_hip_1");
-      publishTransform (user, XN_SKEL_LEFT_KNEE,      frame_id, "left_knee_1");
-      publishTransform (user, XN_SKEL_LEFT_FOOT,      frame_id, "left_foot_1");
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HIP,       frame_id, "left_hip_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_KNEE,      frame_id, "left_knee_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_FOOT,      frame_id, "left_foot_1"));
 
-      publishTransform (user, XN_SKEL_RIGHT_HIP,      frame_id, "right_hip_1");
-      publishTransform (user, XN_SKEL_RIGHT_KNEE,     frame_id, "right_knee_1");
-      publishTransform (user, XN_SKEL_RIGHT_FOOT,     frame_id, "right_foot_1");
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HIP,      frame_id, "right_hip_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_KNEE,     frame_id, "right_knee_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_FOOT,     frame_id, "right_foot_1"));
     }
+    tf_pub_.publish (tfs);
   }
-  void publishTransform(XnUserID const& user, XnSkeletonJoint joint, std::string const& frame_id, std::string const& child_frame_id) {
-      static tf::TransformBroadcaster br;
-
+  
+  geometry_msgs::TransformStamped 
+    getUserTransform(XnUserID const& user, XnSkeletonJoint joint, std::string const& frame_id, std::string const& child_frame_id)
+  {
       XnSkeletonJointPosition joint_position;
       g_UserGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, joint, joint_position);
-      double x = joint_position.position.X / 1000.0;
+      double x = -joint_position.position.X / 1000.0;
       double y = joint_position.position.Y / 1000.0;
       double z = joint_position.position.Z / 1000.0;
 
@@ -352,11 +394,26 @@ public:
                        m[6], m[7], m[8]);
       btQuaternion q;
       mat.getRotation (q);
+      q.setY(-q.y());
+      q.setZ(-q.z());
 
       tf::Transform transform;
       transform.setOrigin(tf::Vector3(x, y, z));
       transform.setRotation(q);
-      br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), frame_id, child_frame_id));
+
+      geometry_msgs::TransformStamped msg;
+      
+      // see openni_tracker ticket #4994
+      tf::Transform change_frame;
+      change_frame.setOrigin(tf::Vector3(0, 0, 0));
+      tf::Quaternion frame_rotation;
+      frame_rotation.setEulerZYX(1.5708, 0, 1.5708);
+      change_frame.setRotation(frame_rotation);
+
+      transform = change_frame * transform;
+
+      transformStampedTFToMsg (tf::StampedTransform(transform, ros::Time::now(), frame_id, child_frame_id), msg);
+      return msg;
   }
 
 protected:
@@ -374,6 +431,7 @@ protected:
   realtime_urdf_filter::RealtimeURDFFilter *filter;
 
   ros::NodeHandle nh_;
+  ros::Publisher tf_pub_;
 
   // neccesary for glutInit()..
   int argc_;
@@ -396,7 +454,7 @@ int main (int argc, char **argv)
   while (nh.ok())
   {
     //ros::spinOnce ();
-    lo.runOnce ();
+    //lo.runOnce ();
     r.sleep ();
   }
 

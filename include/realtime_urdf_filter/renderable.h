@@ -1,9 +1,9 @@
 #ifndef REALTIME_PERCEPTION_RENDERABLE_H_
 #define REALTIME_PERCEPTION_RENDERABLE_H_
 
-#include <GL/gl.h>
+#include <GL3/gl3.h>
 #include <tf/tf.h>
-#include <urdf_interface/color.h>
+#include <urdf/color.h>
 
 // forward declare
 struct aiScene;

@@ -162,7 +162,7 @@ public:
 
 	/// check errors using FBO extension function
 	bool						checkFramebufferStatus(void);
-	void						printFramebufferStatus(void);
+	void						printFramebufferStatus(std::string tag);
 
 	/// enable Texture Target
 	void						enableTextureTarget(void) { glEnable(_textureTarget); }

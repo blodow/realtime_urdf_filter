@@ -276,7 +276,7 @@ void RealtimeURDFFilter::initGL ()
 // set up FBO
 void RealtimeURDFFilter::initFrameBufferObject ()
 {
-  fbo_ = new FramebufferObject ("rgba=4x32t depth=24t stencil=t");
+  fbo_ = new FramebufferObject ("rgba=4x32t depth=24t stencil=8t");
 
   fbo_->initialize (width_, height_);
   fbo_initialized_ = true;
@@ -284,6 +284,10 @@ void RealtimeURDFFilter::initFrameBufferObject ()
   GLenum err = glGetError();
   if(err != GL_NO_ERROR)
     printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
+
+  GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if(status != GL_FRAMEBUFFER_COMPLETE)
+    printf("OpenGL FrameBuffer ERROR after FBO initialization: %i\n", status);
 }
 
 // compute Projection matrix from CameraInfo message
@@ -368,7 +372,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
   GLenum err = glGetError();
   if(err != GL_NO_ERROR)
-    printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
+    printf("OpenGL ERROR at beginning of rendering: %s\n", gluErrorString(err));
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glEnable(GL_NORMALIZE);
