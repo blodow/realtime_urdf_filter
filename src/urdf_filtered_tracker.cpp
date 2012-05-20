@@ -16,7 +16,7 @@
 	{																\
 		printf("%s failed: %s\n", what, xnGetStatusString(nRetVal));\
 	}
-		// TODO: return nRetVal;												\
+		// TODO: return nRetVal;											
 
 class OpenNITrackerLoopback
 {
@@ -81,6 +81,7 @@ public:
 
     // by Heresy, create mock node
     mockDepth.CreateBasedOn( g_DepthGenerator, "mock-depth" );
+    g_DepthGenerator.GetMetaData(depthMD);
 
     // by Heresy, create an user generator fot mock depth node
     xn::Query xQuery;
@@ -117,12 +118,10 @@ public:
     nRetVal = g_Context.StartGeneratingAll();
     CHECK_RC(nRetVal, "StartGenerating");
 
-    //setupURDFSelfFilter ();
-  }
-
-  void setupURDFSelfFilter ()
-  {
     filter = new realtime_urdf_filter::RealtimeURDFFilter (nh_, argc_, argv_);
+    filter->width_ = 640;
+    filter->height_ = 480;
+    filter->initGL ();
   }
 
   ~OpenNITrackerLoopback ()
@@ -145,17 +144,36 @@ public:
     g_Context.WaitOneUpdateAll( g_DepthGenerator );
 
     // Process the data
-    g_DepthGenerator.GetMetaData(depthMD_);
+    g_DepthGenerator.GetMetaData (depthMD_);
+    g_DepthGenerator.GetMetaData (depthMD);
     depthMD_.MakeDataWritable();
     xn::DepthMap& depthMap_ = depthMD_.WritableDepthMap();
     xn::DepthMap& depthMap = depthMD.WritableDepthMap();
 
-    //filter->filter ();
+    static float *buffer = 0;
+    if (buffer == 0)
+    {
+      buffer = (float*) malloc (depthMap.XRes() * depthMap.YRes() * sizeof(float));
+    }
     for (XnUInt y = 0; y < depthMap.YRes(); y++)
     {
       for (XnUInt x = 0; x < depthMap.XRes(); x++)
       {
-          depthMap_(x, y) = depthMap(x, y); 
+        buffer [x + y * depthMap.XRes()] = depthMap (x, y) * 0.001;
+      }
+    }
+
+    double glTf[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+
+    filter->filter ((unsigned char*)buffer, glTf, depthMap.XRes (), depthMap.YRes ());
+
+    GLfloat* masked_depth = filter->getMaskedDepth();
+
+    for (XnUInt y = 0; y < depthMap.YRes(); y++)
+    {
+      for (XnUInt x = 0; x < depthMap.XRes(); x++)
+      {
+          depthMap_(x, y) = XnDepthPixel (masked_depth[x + y * depthMap.XRes()] * 1000); 
       }
     }
 

@@ -128,6 +128,36 @@ double RealtimeURDFFilter::getTime ()
   return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
 }
 
+void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width, int height)
+{
+  if (width_ != width || height_ != height)
+  {
+    ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
+    width_ = width;
+    height_ = height;
+    initGL ();
+  }
+
+  // Timing
+  static unsigned count = 0;
+  static double last = getTime ();
+  double now = getTime ();
+
+  if (++count == 30 || (now - last) > 5)
+  {
+    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
+    count = 0;
+    last = now;
+  }
+
+  // get depth_image into OpenGL texture buffer
+  int size_in_bytes = width_ * height_ * sizeof(float);
+  textureBufferFromDepthBuffer (buffer, size_in_bytes);
+
+  // render everything
+  render (glTf);
+}
+
 // callback function that gets ROS images and does everything
 void RealtimeURDFFilter::filter_callback
      (const sensor_msgs::ImageConstPtr& ros_depth_image,
@@ -146,46 +176,16 @@ void RealtimeURDFFilter::filter_callback
   }
   cv::Mat1f depth_image = orig_depth_img->image;
 
-  // Make sure initGL is called from the same thread that calls render ()
-  static bool first = true;
-  if (first)
-  {
-    width_ = depth_image.cols;
-    height_ = depth_image.rows;
-    initGL ();
-    first = false;
-  }
-  if (width_ != depth_image.cols || height_ != depth_image.rows)
-  {
-    // TODO: reinitialize FBO
-    ROS_ERROR_ONCE ("image size has changed, please restart!");
-    return;
-  }
+  unsigned char *buffer = bufferFromDepthImage (depth_image);
+  double glTf[16];
+  getProjectionMatrix (camera_info, glTf);
 
-  // Timing
-  static unsigned count = 0;
-  static double last = getTime ();
-  double now = getTime ();
-
-  if (++count == 30 || (now - last) > 5)
-  {
-    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
-    count = 0;
-    last = now;
-  }
-
-  // get depth_image into OpenGL texture buffer
-  textureBufferFromDepthImage (depth_image);
-
-  // render everything
-  render (camera_info);
+  filter (buffer, glTf, depth_image.cols, depth_image.rows);
 
   // publish processed depth image and image mask
   cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
-//      cv::imshow ("depth", masked_depth_image);
   cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
-//      cv::imshow ("mask", mask_image);
-//      cv::waitKey (100);
+
   cv_bridge::CvImage out_masked_depth;
   out_masked_depth.header = ros_depth_image->header;
   out_masked_depth.encoding = "32FC1";
@@ -199,7 +199,27 @@ void RealtimeURDFFilter::filter_callback
   mask_pub_.publish (out_mask.toImageMsg ());
 }
 
-void RealtimeURDFFilter::textureBufferFromDepthImage (cv::Mat1f depth_image)
+void RealtimeURDFFilter::textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes)
+{
+  // check if we already have a PBO and Texture Buffer
+  if (depth_image_pbo_ == GL_INVALID_VALUE)
+  {
+    glGenBuffers (1, &depth_image_pbo_);
+    glGenTextures (1, &depth_texture_);
+  }
+
+  glBindBuffer (GL_ARRAY_BUFFER, depth_image_pbo_);
+
+  // upload buffer data to GPU
+  glBufferData (GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
+  glBindBuffer (GL_ARRAY_BUFFER, 0);
+
+  // assign PBO to Texture Buffer
+  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
+  glTexBuffer (GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
+}
+
+unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
 {
   // Host buffer to hold depth pixel data
   static unsigned char* buffer = 0;
@@ -218,35 +238,25 @@ void RealtimeURDFFilter::textureBufferFromDepthImage (cv::Mat1f depth_image)
       memcpy ((void*)(buffer + i * row_size), (void*) &depth_image.data[i], row_size);
   }
 
-  // check if we already have a PBO and Texture Buffer
-  if (depth_image_pbo_ == GL_INVALID_VALUE)
-  {
-    glGenBuffers (1, &depth_image_pbo_);
-    glGenTextures (1, &depth_texture_);
-  }
-
-  glBindBuffer (GL_ARRAY_BUFFER, depth_image_pbo_);
-
-  // upload buffer data to GPU
-  int size_in_bytes = row_size * depth_image.rows;
-  glBufferData (GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
-  glBindBuffer (GL_ARRAY_BUFFER, 0);
-
-  // assign PBO to Texture Buffer
-  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
-  glTexBuffer (GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
+  return buffer;
 }
 
 // set up OpenGL stuff
 void RealtimeURDFFilter::initGL ()
 {
+  static bool glut_initialized = false;
   //TODO: change this to use an offscreen pbuffer, so no window is necessary
-  glutInit (&argc_, argv_);
+  if (!glut_initialized)
+  {
+    glutInit (&argc_, argv_);
 
-  // the window will show 3x2 grid of images
-  glutInitWindowSize (960, 480);
-  glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
-  glutCreateWindow ("Realtime URDF Filter Debug Window");
+    // the window will show 3x2 grid of images
+    glutInitWindowSize (960, 480);
+    glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
+    glutCreateWindow ("Realtime URDF Filter Debug Window");
+
+    glut_initialized = true;
+  }
 
   // initialize glew library
   GLenum err = glewInit();
@@ -332,7 +342,7 @@ void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::Con
   glTf[11]= -1;
 }
 
-void RealtimeURDFFilter::render (const sensor_msgs::CameraInfo::ConstPtr& cam_info)
+void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 {
   if (!fbo_initialized_)
     return;
@@ -394,9 +404,7 @@ void RealtimeURDFFilter::render (const sensor_msgs::CameraInfo::ConstPtr& cam_in
   glLoadIdentity();
 
   // load camera info into OpenGL camera matrix
-  btScalar glTf[16];
-  getProjectionMatrix (cam_info, glTf);
-  glMultMatrixd((GLdouble*)glTf);
+  glMultMatrixd(camera_projection_matrix);
 
   // setup camera position
   glMatrixMode(GL_MODELVIEW);
@@ -415,6 +423,7 @@ void RealtimeURDFFilter::render (const sensor_msgs::CameraInfo::ConstPtr& cam_in
  
   // apply user-defined camera offset transformation (launch file)
   tf::Transform transform (camera_offset_q_, camera_offset_t_);
+  btScalar glTf[16];
   transform.inverse().getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
 

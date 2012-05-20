@@ -36,7 +36,14 @@ class RealtimeURDFFilter
          (const sensor_msgs::ImageConstPtr& ros_depth_image,
           const sensor_msgs::CameraInfo::ConstPtr& camera_info);
 
-    void textureBufferFromDepthImage (cv::Mat1f depth_image);
+    // does virtual rendering and filtering based on depth buffer and opengl proj. matrix
+    void filter (unsigned char* buffer, double* glTf, int width, int height);
+
+    // copy cv::Mat1f to char buffer
+    unsigned char* bufferFromDepthImage (cv::Mat1f depth_image);
+
+    // copy char buffer to OpenGL texture
+    void textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes);
 
     // set up OpenGL stuff
     void initGL ();
@@ -47,9 +54,12 @@ class RealtimeURDFFilter
     // compute Projection matrix from CameraInfo message
     void getProjectionMatrix (const sensor_msgs::CameraInfo::ConstPtr& current_caminfo, double* glTf);
 
-    void render (const sensor_msgs::CameraInfo::ConstPtr& cam_info);
+    void render (const double* camera_projection_matrix);
+
+    GLfloat* getMaskedDepth()
+      {return masked_depth_;}
     
-  protected:
+  public:
     // ROS objects
     ros::NodeHandle &nh_;
     tf::TransformListener tf_;
