@@ -1,3 +1,6 @@
+// Matteo Saveriano
+
+
 #include "realtime_urdf_filter/urdf_filter.h"
 #include "realtime_urdf_filter/urdf_renderer.h"
 #include "realtime_urdf_filter/depth_and_info_subscriber.h"
@@ -6,6 +9,10 @@
 #include <ros/package.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/tfMessage.h>
+
+#include <std_msgs/String.h>
+
+#include <sstream>
 
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
@@ -119,7 +126,8 @@ public:
     nRetVal = g_Context.StartGeneratingAll();
     CHECK_RC(nRetVal, "StartGenerating");
 
-    tf_pub_ = nh_.advertise<tf::tfMessage> ("/tf",1);
+    tf_pub_ = nh_.advertise<tf::tfMessage> ("/tf", 1);
+    event_pub_ = nh_.advertise<std_msgs::String> ("user_event", 1);
 
     setupURDFSelfFilter ();
   }
@@ -167,7 +175,7 @@ public:
     {
       for (XnUInt x = 0; x < depthMap.XRes(); x++)
       {
-        buffer [x + y * depthMap.XRes()] = depthMap (x, y) * 0.001;
+        buffer [x + y * depthMap.XRes()] = depthMap (depthMap.XRes() - x - 1, y) * 0.001;
       }
     }
 
@@ -218,12 +226,21 @@ public:
 		publishTransforms (std::string("openni_depth_frame"));
   }
 
+  void publishEvent (std::string msg, XnUserID nId)
+  {
+      std::stringstream ss;
+      ss << msg << " " << nId;
+      std_msgs::String out;
+      out.data = ss.str();
+      event_pub_.publish (out);
+  }
+
   static void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie)
   {
     OpenNITrackerLoopback* self = (OpenNITrackerLoopback*) pCookie;
     self->g_UserGenerator.GetPoseDetectionCap().StopPoseDetection (nId);
     self->g_UserGenerator.GetSkeletonCap().RequestCalibration (nId, true);
-    //status ("Pose detected for ")
+    self->publishEvent ("calibrating", nId);
   }
 
   static void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd (xn::SkeletonCapability& capability, XnUserID nId, XnBool bSuccess, void* pCookie)
@@ -232,16 +249,19 @@ public:
     if (bSuccess)
     {
       self->g_UserGenerator.GetSkeletonCap().StartTracking (nId);
+      self->publishEvent ("tracking", nId);
     }
     else
     {
       if (self->g_bNeedPose)
       {
         self->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection (self->g_strPose, nId);
+        self->publishEvent ("posedetection", nId);
       }
       else
       {
         self->g_UserGenerator.GetSkeletonCap().RequestCalibration (nId, true);
+        self->publishEvent ("calibrating", nId);
       }
     }
   }
@@ -249,49 +269,54 @@ public:
   // Callback: An existing user was lost
   static void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
   {
+    OpenNITrackerLoopback* self = (OpenNITrackerLoopback*) pCookie;
     XnUInt32 epochTime = 0;
     xnOSGetEpochTime(&epochTime);
     printf("%d Lost user %d\n", epochTime, nId);	
+    self->publishEvent ("lost", nId);
   }
   // Callback: New user was detected
   static void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
   {
     OpenNITrackerLoopback* self = (OpenNITrackerLoopback*) pCookie;
-    //Matteo Saveriano
-    //if(nId > 1) 
-    //{	
-    //  XnStatus res = self->g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
-    //  if (res != XN_CALIBRATION_STATUS_OK)
-    //  {	
-    //    std::cout << "Error StopPoseDetection";
-    //  }
-    //  res = self->g_UserGenerator.GetSkeletonCap().AbortCalibration(nId);
-    //  if (res != XN_CALIBRATION_STATUS_OK)
-    //  {	
-    //    std::cout << "Error AbortCalibration";
-    //  }
-    //  res = self->g_UserGenerator.GetSkeletonCap().StopTracking(nId);
-    //  if (res != XN_CALIBRATION_STATUS_OK)
-    //  {	
-    //    std::cout << "Error StopTracking";
-    //  }
-    //  self->g_UserGenerator.GetPoseDetectionCap().Release();
-    //  self->g_UserGenerator.GetSkeletonCap().Release();
-    //  return;
-    //}
+    if(nId > 15) 
+    {	
+      XnStatus res = self->g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
+      if (res != XN_CALIBRATION_STATUS_OK)
+      {	
+        std::cout << "Error StopPoseDetection";
+      }
+      res = self->g_UserGenerator.GetSkeletonCap().AbortCalibration(nId);
+      if (res != XN_CALIBRATION_STATUS_OK)
+      {	
+        std::cout << "Error AbortCalibration";
+      }
+      res = self->g_UserGenerator.GetSkeletonCap().StopTracking(nId);
+      if (res != XN_CALIBRATION_STATUS_OK)
+      {	
+        std::cout << "Error StopTracking";
+      }
+      self->g_UserGenerator.GetPoseDetectionCap().Release();
+      self->g_UserGenerator.GetSkeletonCap().Release();
+      return;
+    }
+    // New user found
     XnUInt32 epochTime = 0;
     xnOSGetEpochTime(&epochTime);
     printf("%d New User %d\n", epochTime, nId);
-    // New user found
+    self->publishEvent ("new", nId);
+
     if (self->g_bNeedPose)
     {
       std::cerr << "starting pose deteciton: " << __FILE__ << " : " << __LINE__ << std::endl;
       self->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(self->g_strPose, nId);
+      self->publishEvent ("posedetection", nId);
     }
     else
     {
       std::cerr << "request calibration: " << __FILE__ << " : " << __LINE__ << std::endl;
       self->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+      self->publishEvent ("calibrating", nId);
     }
   }
 
@@ -307,6 +332,7 @@ public:
       // Calibration succeeded
       printf("%d Calibration complete, start tracking user %d\n", epochTime, nId);		
       self->g_UserGenerator.GetSkeletonCap().StartTracking(nId);
+      self->publishEvent ("tracking", nId);
     }
     else
     {
@@ -315,10 +341,12 @@ public:
       if (self->g_bNeedPose)
       {
         self->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(self->g_strPose, nId);
+        self->publishEvent ("posedetection", nId);
       }
       else
       {
         self->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+        self->publishEvent ("calibrating", nId);
       }
     }
   }
@@ -348,30 +376,35 @@ public:
       if (!g_UserGenerator.GetSkeletonCap().IsTracking (user))
         continue;
 
+      std::stringstream ss;
+      std::string user_suffix;
+      ss << "_" << user;
+      user_suffix = ss.str ();
+
       std::cerr << "publishTransforms: " << __FILE__ << " : " << __LINE__ << std::endl;
 
       // TODO: this only works for the DLR demo right now
     ///  tfs.transforms.push_back (getMatToFloorTF (0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, "/floor", frame_id));
 
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_HEAD,           frame_id, "head_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_NECK,           frame_id, "neck_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_TORSO,          frame_id, "torso_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_HEAD,           frame_id, "head" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_NECK,           frame_id, "neck" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_TORSO,          frame_id, "torso" + user_suffix));
 
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_SHOULDER,  frame_id, "left_shoulder_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_ELBOW,     frame_id, "left_elbow_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HAND,      frame_id, "left_hand_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_SHOULDER,  frame_id, "left_shoulder" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_ELBOW,     frame_id, "left_elbow" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HAND,      frame_id, "left_hand" + user_suffix));
 
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_SHOULDER, frame_id, "right_shoulder_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_ELBOW,    frame_id, "right_elbow_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HAND,     frame_id, "right_hand_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_SHOULDER, frame_id, "right_shoulder" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_ELBOW,    frame_id, "right_elbow" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HAND,     frame_id, "right_hand" + user_suffix));
 
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HIP,       frame_id, "left_hip_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_KNEE,      frame_id, "left_knee_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_FOOT,      frame_id, "left_foot_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_HIP,       frame_id, "left_hip" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_KNEE,      frame_id, "left_knee" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_LEFT_FOOT,      frame_id, "left_foot" + user_suffix));
 
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HIP,      frame_id, "right_hip_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_KNEE,     frame_id, "right_knee_1"));
-      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_FOOT,     frame_id, "right_foot_1"));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_HIP,      frame_id, "right_hip" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_KNEE,     frame_id, "right_knee" + user_suffix));
+      tfs.transforms.push_back (getUserTransform (user, XN_SKEL_RIGHT_FOOT,     frame_id, "right_foot" + user_suffix));
     }
     tf_pub_.publish (tfs);
   }
@@ -432,6 +465,7 @@ protected:
 
   ros::NodeHandle nh_;
   ros::Publisher tf_pub_;
+  ros::Publisher event_pub_;
 
   // neccesary for glutInit()..
   int argc_;
@@ -454,7 +488,7 @@ int main (int argc, char **argv)
   while (nh.ok())
   {
     //ros::spinOnce ();
-    //lo.runOnce ();
+    lo.runOnce ();
     r.sleep ();
   }
 
