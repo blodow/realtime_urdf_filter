@@ -36,15 +36,23 @@ include_directories(${freeglut_INCLUDE_DIR})
 
 rosbuild_add_library (FBO src/FrameBufferObject.cpp)
 target_link_libraries (FBO GLEW)
+
 rosbuild_add_library (shaderwrapper src/shader_wrapper.cpp)
 
-rosbuild_add_executable (realtime_urdf_filter 
-  src/realtime_urdf_filter.cpp 
+rosbuild_add_library (urdf_filter 
+  src/urdf_filter.cpp
   src/urdf_renderer.cpp 
-  src/renderable.cpp 
-  )
-target_link_libraries (realtime_urdf_filter 
-  ${OPENGL_LIBRARIES} ${freeglut_LIBRARY} 
-  ${OpenCV_LIBS} 
-  FBO shaderwrapper)
+  src/renderable.cpp)
+target_link_libraries (urdf_filter
+  ${OPENGL_LIBRARIES}
+  ${freeglut_LIBRARY} 
+  ${OpenCV_LIBS}
+  FBO
+  shaderwrapper)
+
+rosbuild_add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
+target_link_libraries (urdf_filtered_tracker urdf_filter)
+
+rosbuild_add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
+target_link_libraries (realtime_urdf_filter urdf_filter)
 

@@ -1,5 +1,5 @@
-#ifndef REALTIME_PERCEPTION_URDF_RENDERER_H_
-#define REALTIME_PERCEPTION_URDF_RENDERER_H_
+#ifndef REALTIME_URDF_FILTER_URDF_RENDERER_H_
+#define REALTIME_URDF_FILTER_URDF_RENDERER_H_
 
 #include <urdf/model.h>
 #include <tf/transform_listener.h>
