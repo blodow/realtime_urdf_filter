@@ -6,7 +6,7 @@
 
     <rosparam>
       fixed_frame: /world
-      camera_frame: /camera_depth_optical_frame
+      camera_frame: /openni_depth_optical_frame
       camera_offset:
         translation: [0.0, 0.0, 0.0]
         rotation:    [0.0, 0.0, 0.0, 1.0]
