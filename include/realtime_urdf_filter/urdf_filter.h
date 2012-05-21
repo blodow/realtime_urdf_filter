@@ -37,7 +37,7 @@ class RealtimeURDFFilter
           const sensor_msgs::CameraInfo::ConstPtr& camera_info);
 
     // does virtual rendering and filtering based on depth buffer and opengl proj. matrix
-    void filter (unsigned char* buffer, double* glTf, int width, int height);
+    void filter (unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp = ros::Time::now());
 
     // copy cv::Mat1f to char buffer
     unsigned char* bufferFromDepthImage (cv::Mat1f depth_image);
@@ -80,6 +80,10 @@ class RealtimeURDFFilter
     tf::Quaternion camera_offset_q_;
     std::string cam_frame_;
     std::string fixed_frame_;
+    bool show_gui_;
+
+    // do we have subscribers for the mask image?
+    bool need_mask_;
 
     // image size
     GLint width_;

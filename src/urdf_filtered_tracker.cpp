@@ -275,6 +275,7 @@ public:
     printf("%d Lost user %d\n", epochTime, nId);	
     self->publishEvent ("lost", nId);
   }
+
   // Callback: New user was detected
   static void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
   {
@@ -351,17 +352,7 @@ public:
     }
   }
 
-  geometry_msgs::TransformStamped 
-    getMatToFloorTF(double x, double y, double z, double qw, double qx, double qy, double qz, std::string const& frame_id, std::string const& child_frame_id)
-  {
-    tf::Transform transform;
-    transform.setOrigin(tf::Vector3(x, y, z));
-    transform.setRotation(tf::Quaternion(qx, qy, qz, qw));
-    geometry_msgs::TransformStamped msg;
-    transformStampedTFToMsg (tf::StampedTransform(transform, ros::Time::now(), frame_id, child_frame_id), msg);
-    return msg;
-  }
-
+  // publishes TF tree for each tracked user
   void publishTransforms (std::string const& frame_id)
   {
     XnUserID users[15];
@@ -382,9 +373,6 @@ public:
       user_suffix = ss.str ();
 
       std::cerr << "publishTransforms: " << __FILE__ << " : " << __LINE__ << std::endl;
-
-      // TODO: this only works for the DLR demo right now
-    ///  tfs.transforms.push_back (getMatToFloorTF (0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, "/floor", frame_id));
 
       tfs.transforms.push_back (getUserTransform (user, XN_SKEL_HEAD,           frame_id, "head" + user_suffix));
       tfs.transforms.push_back (getUserTransform (user, XN_SKEL_NECK,           frame_id, "neck" + user_suffix));
@@ -409,6 +397,7 @@ public:
     tf_pub_.publish (tfs);
   }
   
+  // computes a stamped transform for each user joint
   geometry_msgs::TransformStamped 
     getUserTransform(XnUserID const& user, XnSkeletonJoint joint, std::string const& frame_id, std::string const& child_frame_id)
   {
@@ -463,6 +452,7 @@ protected:
   XnChar g_strPose[20];
   realtime_urdf_filter::RealtimeURDFFilter *filter;
 
+  // ROS stuff
   ros::NodeHandle nh_;
   ros::Publisher tf_pub_;
   ros::Publisher event_pub_;
@@ -473,6 +463,7 @@ protected:
 };
 
 
+// main function
 int main (int argc, char **argv)
 {
 	sleep(1);
@@ -481,24 +472,18 @@ int main (int argc, char **argv)
   ros::init (argc, argv, "urdf_filtered_tracker");
   ros::NodeHandle nh ("~");
 
-  OpenNITrackerLoopback lo (nh, argc, argv);
+  OpenNITrackerLoopback *lo = new OpenNITrackerLoopback (nh, argc, argv);
 
+  // since OpenNI keeps giving you data even if no new data is available, #
+  // we get crazy frequencies if we don't limit it artificially
   ros::Rate r(30);
 
+	sleep(1);
   while (nh.ok())
   {
-    //ros::spinOnce ();
-    lo.runOnce ();
+    lo->runOnce ();
     r.sleep ();
   }
-
-
-  // create RealtimeURDFFilter and subcribe to ROS
- // realtime_urdf_filter::RealtimeURDFFilter f(nh, argc, argv);
- // realtime_urdf_filter::DepthAndInfoSubscriber sub (nh, boost::bind (&realtime_urdf_filter::RealtimeURDFFilter::filter_callback, &f, _1, _2));
-
-  // spin that shit!
-  //ros::spin ();
 
   return 0;
 }

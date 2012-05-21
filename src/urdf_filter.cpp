@@ -24,7 +24,7 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   ROS_INFO ("using fixed frame %s", fixed_frame_.c_str ());
 
   // get camera frame name 
-  // TODO: read this from ROS message
+  // we do not read this from ROS message, for being able to run this within openni (self filtered tracker..)
   nh_.getParam ("camera_frame", v);
   ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeString && "need a camera_frame paramter!");
   cam_frame_ = (std::string)v;
@@ -56,6 +56,12 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeDouble && "need a depth_distance_threshold paramter!");
   depth_distance_threshold_ = (double)v;
   ROS_INFO ("using depth distance threshold %f", depth_distance_threshold_);
+
+  // depth distance threshold (how far from the model are points still deleted?)
+  nh_.getParam ("show_gui", v);
+  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeBoolean && "need a show_gui paramter!");
+  show_gui_ = (bool)v;
+  ROS_INFO ("showing gui / visualization: %s", (show_gui_?"ON":"OFF"));
 
   // setup publishers 
   // TODO: make these topics parameters
@@ -128,7 +134,7 @@ double RealtimeURDFFilter::getTime ()
   return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
 }
 
-void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width, int height)
+void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp)
 {
   if (width_ != width || height_ != height)
   {
@@ -137,6 +143,11 @@ void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width,
     height_ = height;
     initGL ();
   }
+
+  if (mask_pub_.getNumSubscribers() > 0)
+    need_mask_ = true;
+  else
+    need_mask_ = false;
 
   // Timing
   static unsigned count = 0;
@@ -156,6 +167,30 @@ void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width,
 
   // render everything
   render (glTf);
+
+  // publish processed depth image and image mask
+  if (depth_pub_.getNumSubscribers() > 0)
+  {
+    cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
+    cv_bridge::CvImage out_masked_depth;
+    out_masked_depth.header.frame_id = cam_frame_;
+    out_masked_depth.header.stamp = timestamp;
+    out_masked_depth.encoding = "32FC1";
+    out_masked_depth.image = masked_depth_image;
+    depth_pub_.publish (out_masked_depth.toImageMsg ());
+  }
+
+  if (mask_pub_.getNumSubscribers() > 0)
+  {
+    cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
+
+    cv_bridge::CvImage out_mask;
+    out_mask.header.frame_id = cam_frame_;
+    out_mask.header.stamp = timestamp;
+    out_mask.encoding = "mono8";
+    out_mask.image = mask_image;
+    mask_pub_.publish (out_mask.toImageMsg ());
+  }
 }
 
 // callback function that gets ROS images and does everything
@@ -180,23 +215,7 @@ void RealtimeURDFFilter::filter_callback
   double glTf[16];
   getProjectionMatrix (camera_info, glTf);
 
-  filter (buffer, glTf, depth_image.cols, depth_image.rows);
-
-  // publish processed depth image and image mask
-  cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
-  cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
-
-  cv_bridge::CvImage out_masked_depth;
-  out_masked_depth.header = ros_depth_image->header;
-  out_masked_depth.encoding = "32FC1";
-  out_masked_depth.image = masked_depth_image;
-  depth_pub_.publish (out_masked_depth.toImageMsg ());
-
-  cv_bridge::CvImage out_mask;
-  out_mask.header = ros_depth_image->header;
-  out_mask.encoding = "mono8";
-  out_mask.image = mask_image;
-  mask_pub_.publish (out_mask.toImageMsg ());
+  filter (buffer, glTf, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp);
 }
 
 void RealtimeURDFFilter::textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes)
@@ -244,9 +263,9 @@ unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
 // set up OpenGL stuff
 void RealtimeURDFFilter::initGL ()
 {
-  static bool glut_initialized = false;
+  static bool gl_initialized = false;
   //TODO: change this to use an offscreen pbuffer, so no window is necessary
-  if (!glut_initialized)
+  if (!gl_initialized)
   {
     glutInit (&argc_, argv_);
 
@@ -255,7 +274,11 @@ void RealtimeURDFFilter::initGL ()
     glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
     glutCreateWindow ("Realtime URDF Filter Debug Window");
 
-    glut_initialized = true;
+    gl_initialized = true;
+    if (!show_gui_)
+    {
+        glutHideWindow ();
+    }
   }
 
   // initialize glew library
@@ -268,7 +291,7 @@ void RealtimeURDFFilter::initGL ()
   // set up FBO and load URDF models + meshes onto GPU
   initFrameBufferObject ();
   loadModels ();
-  std::cerr << " --- Initialization done. ---" << std::endl;
+  std::cout << " --- Initialization done. ---" << std::endl;
   masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
   mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
 }
@@ -407,7 +430,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity();
 
-  // load camera info into OpenGL camera matrix
+  // load camera projection matrix into OpenGL camera matrix
   glMultMatrixd(camera_projection_matrix);
 
   // setup camera position
@@ -418,6 +441,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   gluLookAt (0,0,0, 0,0,1, 0,1,0);
   
   // draw background quad behind everything (just before the far plane)
+  // otherwise, the shader only sees kinect points where he rendered stuff
   glBegin(GL_QUADS);
     glVertex3f(-10.0, -10.0, far_plane_*0.99);
     glVertex3f( 10.0, -10.0, far_plane_*0.99);
@@ -463,196 +487,181 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   fbo_->endCapture();
   glPopAttrib();
 
-  // -----------------------------------------------------------------------
-  // -----------------------------------------------------------------------
-  //	from here on folloes mainly display code 
-  //	(not necessary for offscreen rendering)
+  if (need_mask_ || show_gui_)
+  {
+    // use stencil buffer to draw a red / blue mask into color attachment 3
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  // use stencil buffer to draw a red / blue mask
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
+    fbo_->beginCapture();
+    glDrawBuffer(GL_COLOR_ATTACHMENT3_EXT);
 
-  fbo_->beginCapture();
-  glDrawBuffer(GL_COLOR_ATTACHMENT3_EXT);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_EQUAL, 0x1, 0x1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-  glEnable(GL_STENCIL_TEST);
-  glStencilFunc(GL_EQUAL, 0x1, 0x1);
-  glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    fbo_->disableTextureTarget();
 
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_TEXTURE_2D);
-  fbo_->disableTextureTarget();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);	
+    glPushMatrix();
+    glLoadIdentity();
 
-  glMatrixMode(GL_MODELVIEW);	
-  glPushMatrix();
-  glLoadIdentity();
+    glColor3f(1.0, 0.0, 0.0);
 
-  glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_QUADS);
+      glVertex2f(0.0, 0.0);
+      glVertex2f(1.0, 0.0);
+      glVertex2f(1.0, 1.0);
+      glVertex2f(0.0, 1.0);
+    glEnd();
 
-  glBegin(GL_QUADS);
-    glVertex2f(0.0, 0.0);
-    glVertex2f(1.0, 0.0);
-    glVertex2f(1.0, 1.0);
-    glVertex2f(0.0, 1.0);
-  glEnd();
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
 
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
+    glStencilFunc(GL_EQUAL, 0x0, 0x1);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-  glStencilFunc(GL_EQUAL, 0x0, 0x1);
-  glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    fbo_->disableTextureTarget();
 
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_TEXTURE_2D);
-  fbo_->disableTextureTarget();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);	
+    glPushMatrix();
+    glLoadIdentity();
 
-  glMatrixMode(GL_MODELVIEW);	
-  glPushMatrix();
-  glLoadIdentity();
+    glColor3f(0.0, 0.0, 1.0);
 
-  glColor3f(0.0, 0.0, 1.0);
+    glBegin(GL_QUADS);
+      glVertex2f(0.0, 0.0);
+      glVertex2f(1.0, 0.0);
+      glVertex2f(1.0, 1.0);
+      glVertex2f(0.0, 1.0);
+    glEnd();
 
-  glBegin(GL_QUADS);
-    glVertex2f(0.0, 0.0);
-    glVertex2f(1.0, 0.0);
-    glVertex2f(1.0, 1.0);
-    glVertex2f(0.0, 1.0);
-  glEnd();
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    
+    fbo_->endCapture();
 
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  
-  fbo_->endCapture();
+    glPopAttrib();
+  }
 
-  glPopAttrib();
+  if (show_gui_)
+  {
+    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // render all color buffer attachments into window
 
-  // -----------------------------------------------------------------------
-  // -----------------------------------------------------------------------
-  // render all color buffer attachments into window
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);	
+    glPushMatrix();
+    glLoadIdentity();
 
-  glMatrixMode(GL_MODELVIEW);	
-  glPushMatrix();
-  glLoadIdentity();
+    // draw color buffer 0
+    fbo_->bind(0);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, fbo_->getHeight());
+      glVertex2f(0.0, 0.5);
+      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
+      glVertex2f(0.333, 0.5);
+      glTexCoord2f(fbo_->getWidth(), 0.0);
+      glVertex2f(0.333, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.0, 1.0);
+    glEnd();
 
-  // draw color buffer 0
-  fbo_->bind(0);
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, fbo_->getHeight());
-    glVertex2f(0.0, 0.5);
-    glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-    glVertex2f(0.333, 0.5);
-    glTexCoord2f(fbo_->getWidth(), 0.0);
-    glVertex2f(0.333, 1.0);
-    glTexCoord2f(0.0, 0.0);
-    glVertex2f(0.0, 1.0);
-  glEnd();
+    // draw color buffer 1
+    fbo_->bind(1);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, fbo_->getHeight());
+      glVertex2f(0.0, 0.0);
+      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
+      glVertex2f(0.333, 0.0);
+      glTexCoord2f(fbo_->getWidth(), 0.0);
+      glVertex2f(0.333, 0.5);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.0, 0.5);
+    glEnd();
 
-  // draw color buffer 1
-  fbo_->bind(1);
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, fbo_->getHeight());
-    glVertex2f(0.0, 0.0);
-    glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-    glVertex2f(0.333, 0.0);
-    glTexCoord2f(fbo_->getWidth(), 0.0);
-    glVertex2f(0.333, 0.5);
-    glTexCoord2f(0.0, 0.0);
-    glVertex2f(0.0, 0.5);
-  glEnd();
+    // draw color buffer 2
+    fbo_->bind(2);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, fbo_->getHeight());
+      glVertex2f(0.333, 0.5);
+      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
+      glVertex2f(0.666, 0.5);
+      glTexCoord2f(fbo_->getWidth(), 0.0);
+      glVertex2f(0.666, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.333, 1.0);
+    glEnd();
 
-  // draw color buffer 2
-  fbo_->bind(2);
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, fbo_->getHeight());
-    glVertex2f(0.333, 0.5);
-    glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-    glVertex2f(0.666, 0.5);
-    glTexCoord2f(fbo_->getWidth(), 0.0);
-    glVertex2f(0.666, 1.0);
-    glTexCoord2f(0.0, 0.0);
-    glVertex2f(0.333, 1.0);
-  glEnd();
+    // draw color buffer 3
+    fbo_->bind(3);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, fbo_->getHeight());
+      glVertex2f(0.333, 0.0);
+      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
+      glVertex2f(0.666, 0.0);
+      glTexCoord2f(fbo_->getWidth(), 0.0);
+      glVertex2f(0.666, 0.5);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.333, 0.5);
+    glEnd();
 
-  // draw color buffer 3
-  fbo_->bind(3);
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, fbo_->getHeight());
-    glVertex2f(0.333, 0.0);
-    glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-    glVertex2f(0.666, 0.0);
-    glTexCoord2f(fbo_->getWidth(), 0.0);
-    glVertex2f(0.666, 0.5);
-    glTexCoord2f(0.0, 0.0);
-    glVertex2f(0.333, 0.5);
-  glEnd();
+    // draw depth buffer 
+    fbo_->bindDepth();
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, fbo_->getHeight());
+      glVertex2f(0.666, 0.5);
+      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
+      glVertex2f(1.0, 0.5);
+      glTexCoord2f(fbo_->getWidth(), 0.0);
+      glVertex2f(1.0, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.666, 1.0);
+    glEnd();
 
-  // draw depth buffer 
-  fbo_->bindDepth();
-  glBegin(GL_QUADS);
-    glTexCoord2f(0.0, fbo_->getHeight());
-    glVertex2f(0.666, 0.5);
-    glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-    glVertex2f(1.0, 0.5);
-    glTexCoord2f(fbo_->getWidth(), 0.0);
-    glVertex2f(1.0, 1.0);
-    glTexCoord2f(0.0, 0.0);
-    glVertex2f(0.666, 1.0);
-  glEnd();
-
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  
-//      // copy frame buffer attachments to pbo's
-//      fbo_->bind (2);
-//      glBindBuffer (GL_PIXEL_PACK_BUFFER, interop_gl_buffers_[0]);
-//      glGetTexImage (fbo_->getTextureTarget(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-//      glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-//
-//      // copy frame buffer attachments to pbo's
-//      fbo_->bindDepth ();
-//      glBindBuffer (GL_PIXEL_PACK_BUFFER, interop_gl_buffers_[1]);
-//      glGetTexImage (fbo_->getTextureTarget(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-//      glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-//
-  // get device pointer to buffer
-//      char4 *raw_ptr = 0;
-//      cudaGLMapBufferObject((void**)&raw_ptr, interop_gl_buffers_[0]);
-//      interop_cuda_pointer_normals_ = thrust::device_pointer_cast(raw_ptr);
-//
-//      // get device pointer to buffer
-//      float *raw_ptr_d = 0;
-//      cudaGLMapBufferObject((void**)&raw_ptr_d, interop_gl_buffers_[1]);
-//      interop_cuda_pointer_depth_ = thrust::device_pointer_cast(raw_ptr_d);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+  } 
 
   fbo_->bind(1);
   glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_FLOAT, masked_depth_);
-  fbo_->bind(3);
-  glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_UNSIGNED_BYTE, mask_);
+  if (need_mask_)
+  {
+    fbo_->bind(3);
+    glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_UNSIGNED_BYTE, mask_);
+  }
 
   // ok, finished with all OpenGL, let's swap!
-  glutSwapBuffers ();
-  glutPostRedisplay();
-  glutMainLoopEvent ();
-  glFlush ();
+  if (show_gui_)
+  {
+    glutSwapBuffers ();
+    glutPostRedisplay();
+    glutMainLoopEvent ();
+  }
+  // TODO: this necessary? glFlush ();
 }
 
 
