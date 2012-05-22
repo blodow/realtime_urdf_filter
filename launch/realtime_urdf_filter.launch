@@ -6,6 +6,7 @@
 
     <remap from="/camera/depth_registered/image" to="/camera/depth_registered/image"/>
 
+
     <rosparam>
       fixed_frame: /world
       camera_frame: /camera_rgb_optical_frame

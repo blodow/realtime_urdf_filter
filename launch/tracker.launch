@@ -1,9 +1,17 @@
 <launch>
+    <include file="$(find openni_camera)/launch/kinect_frames.launch"/>
+
+    <param name="workspace_description" textfile="$(find realtime_urdf_filter)/urdf/saphari_workspace.urdf.xml" />
+    <node pkg="tf" type="static_transform_publisher" name="wall1_transform_publisher" args="1.5  -1.5 1 0.785398163  0 0 /floor /wall1 1000" />
+    <node pkg="tf" type="static_transform_publisher" name="wall2_transform_publisher" args="-1.5 -1.2 1 -0.785398163 0 0 /floor /wall2 1000" />
+
     <node pkg="realtime_urdf_filter" type="urdf_filtered_tracker" name="urdf_filtered_tracker" output="screen"> 
 
     <remap from="~output" to="/self_filtered_depth_image" />
     <remap from="~output_mask" to="/self_filtered_mask" />
-
+    
+    <!-- remap from="/tf_human" to="/tf"/ -->
+    
     <rosparam>
       fixed_frame: /world
       camera_frame: /openni_depth_optical_frame
@@ -11,6 +19,8 @@
         translation: [0.0, 0.0, 0.0]
         rotation:    [0.0, 0.0, 0.0, 1.0]
       models: 
+        - model: "workspace_description"
+          tf_prefix: ""
         - model: "robot_description"
           tf_prefix: "/JIMI"
         - model: "robot_description"
@@ -23,7 +33,7 @@
           tf_prefix: "/ERIC"
       # how far in front of the robot model is still deleted? (e.g. 0.05 = 5cm)
       depth_distance_threshold: 0.05
-      show_gui: false
+      show_gui: true
     </rosparam>
   </node>
 </launch>

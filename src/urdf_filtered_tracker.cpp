@@ -126,7 +126,7 @@ public:
     nRetVal = g_Context.StartGeneratingAll();
     CHECK_RC(nRetVal, "StartGenerating");
 
-    tf_pub_ = nh_.advertise<tf::tfMessage> ("/tf", 1);
+    tf_pub_ = nh_.advertise<tf::tfMessage> ("/tf_human", 1);
     event_pub_ = nh_.advertise<std_msgs::String> ("user_event", 1);
 
     setupURDFSelfFilter ();
@@ -169,6 +169,7 @@ public:
     static float *buffer = 0;
     if (buffer == 0)
     {
+      std::cout << "(re)allocating depth buffer" << std::endl;
       buffer = (float*) malloc (depthMap.XRes() * depthMap.YRes() * sizeof(float));
     }
     for (XnUInt y = 0; y < depthMap.YRes(); y++)
@@ -223,7 +224,7 @@ public:
 
     mockDepth.SetData(depthMD_);
 
-		publishTransforms (std::string("openni_depth_frame"));
+	publishTransforms (std::string("openni_depth_frame"));
   }
 
   void publishEvent (std::string msg, XnUserID nId)

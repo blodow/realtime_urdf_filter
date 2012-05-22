@@ -252,7 +252,10 @@ unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
   else
   {
     if (buffer == 0)
+    {
+      std::cout << "(re)allocating opengl depth buffer" << std::endl;
       buffer = (unsigned char*) malloc (row_size * depth_image.rows);
+    }
     for (int i = 0; i < depth_image.rows; i++)
       memcpy ((void*)(buffer + i * row_size), (void*) &depth_image.data[i], row_size);
   }
