@@ -93,6 +93,7 @@ class RealtimeURDFFilter
     double far_plane_;
     double near_plane_;
     double depth_distance_threshold_;
+    double filter_replace_value_;
 
     // neccesary for glutInit()..
     int argc_;

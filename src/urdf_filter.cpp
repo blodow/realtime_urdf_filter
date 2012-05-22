@@ -63,6 +63,12 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   show_gui_ = (bool)v;
   ROS_INFO ("showing gui / visualization: %s", (show_gui_?"ON":"OFF"));
 
+  // fitler replace value
+  nh_.getParam ("filter_replace_value", v);
+  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeDouble && "need a filter_replace_value paramter!");
+  filter_replace_value_ = (double)v;
+  ROS_INFO ("using filter replace value %f", filter_replace_value_);
+
   // setup publishers 
   // TODO: make these topics parameters
   mask_pub_ = nh_.advertise<sensor_msgs::Image> ("output_mask", 10);
@@ -477,6 +483,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   shader.SetUniformVal1f (std::string("z_far"), far_plane_);
   shader.SetUniformVal1f (std::string("z_near"), near_plane_);
   shader.SetUniformVal1f (std::string("max_diff"), float(depth_distance_threshold_));
+  shader.SetUniformVal1f (std::string("replace_value"), float(filter_replace_value_));
   glBindTexture (GL_TEXTURE_BUFFER, depth_texture_);
 
   // render every renderable / urdf model

@@ -33,7 +33,8 @@
           tf_prefix: "/ERIC"
       # how far in front of the robot model is still deleted? (e.g. 0.05 = 5cm)
       depth_distance_threshold: 0.05
-      show_gui: true
+      show_gui: false
+      filter_replace_value: 5.0
     </rosparam>
   </node>
 </launch>

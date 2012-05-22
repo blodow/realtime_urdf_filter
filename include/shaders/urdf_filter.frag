@@ -4,6 +4,8 @@ uniform int width;
 uniform int height;
 uniform samplerBuffer depth_texture;
 
+uniform float replace_value;
+
 uniform float z_near;
 uniform float z_far;
 
@@ -31,7 +33,7 @@ void main(void)
                          1.0);
 
   // fourth color attachment: difference image
-  float diff_col = (virtual_depth - sensor_depth > max_diff) ? sensor_depth: 0.0;
+  float diff_col = (virtual_depth - sensor_depth > max_diff) ? sensor_depth: replace_value;
   gl_FragData[1] = vec4 (diff_col, diff_col, diff_col, 1.0);
 }
 
