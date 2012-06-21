@@ -33,6 +33,8 @@
 
 #include <GL3/gl3.h>
 #include <tf/tf.h>
+// this is necessary for diamondback. for more recent ROS versions, use:
+// #include <urdf_interface/color.h>
 #include <urdf/color.h>
 
 // forward declare
