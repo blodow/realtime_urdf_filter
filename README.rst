@@ -83,12 +83,10 @@ similar mechanisms, it will be necessary to set a DISPLAY variable and possible
 turn off access control for the X server. In this case, a bash script like the
 following can be launched from remote:
 
-```bash
-#!/bin/bash
-DISPLAY=:0
-xhost +
-roslaunch realtime_urdf_filter tracker.launch
-```
+    #!/bin/bash
+    DISPLAY=:0
+    xhost +
+    roslaunch realtime_urdf_filter tracker.launch
 
 
 License
