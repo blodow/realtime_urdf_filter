@@ -16,16 +16,19 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-cmake_policy(SET CMP0012 NEW)
-find_package(OpenCV REQUIRED)
-find_package(OpenGL )
-FIND_LIBRARY( freeglut_LIBRARY glut /usr/lib)
+# for future reference. you can ignore this.
+#cmake_policy(SET CMP0012 NEW)
 
-# disabling this line makes the compiler use the system-wide install of pcl.
-# this will conflict with the ros-wide pcl that gets pulled in through the manifest.xml
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
+find_package(OpenNI)
+
+find_package(OpenCV REQUIRED)
+
+find_package(OpenGL)
+find_library(freeglut_LIBRARY glut /usr/lib)
 
 include_directories(${OPENGL_INCLUDE_DIR})
-FIND_PATH( freeglut_INCLUDE_DIR GL/freeglut.h
+find_path( freeglut_INCLUDE_DIR GL/freeglut.h
   /usr/include/GL
   /usr/openwin/share/include
   /usr/openwin/include
@@ -50,10 +53,8 @@ target_link_libraries (urdf_filter
   FBO
   shaderwrapper)
 
-include_directories(/home/f_asimov/packages/openni/usr/include/ni/ /home/f_asimov/packages/nite/Include/)
 rosbuild_add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
-target_link_libraries (urdf_filtered_tracker urdf_filter
-   /home/f_asimov/packages/openni/usr/lib/libOpenNI.so)
+target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI)
 
 rosbuild_add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
 target_link_libraries (realtime_urdf_filter urdf_filter)
