@@ -84,6 +84,7 @@ turn off access control for the X server. In this case, a bash script like the
 following can be launched from remote:
 
 .. code-block:: bash
+
   #!/bin/bash
   DISPLAY=:0
   xhost +
