@@ -81,7 +81,7 @@ server to get a valid OpenGL context (even with ``show_gui`` set to ``false``).
 When launching one of the nodes in this package remotely via roslaunch or
 similar mechanisms, it will be necessary to set a DISPLAY variable and possible
 turn off access control for the X server. In this case, a bash script like the
-following can be launched from remote:
+following can be launched from remote::
 
     #!/bin/bash
     DISPLAY=:0
