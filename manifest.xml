@@ -11,6 +11,7 @@
   
   <depend package="urdf" />
   <depend package="tf" />
+  <!-- right now, we find openni through pkg-config -->
   <!--depend package="openni" /-->
   <depend package="resource_retriever" />
   <depend package="assimp" />
