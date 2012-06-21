@@ -31,8 +31,8 @@
 // -----------------------------------------------------------------------------
 
 #include "realtime_urdf_filter/FrameBufferObject.h"
-#include "string.h"
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
 
 using namespace std;
 
@@ -474,7 +474,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 				//----------------------------------------------------------
 
 				if(!success) 
-					printFramebufferStatus(std::string("f"));
+					printFramebufferStatus();
 					
 			} else {
 
@@ -552,7 +552,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 				//----------------------------------------------------------
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus(std::string("g"));
+					printFramebufferStatus();
 
 			}
 
@@ -602,7 +602,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 											_depthAttachmentID, 0);
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus(std::string("b"));
+					printFramebufferStatus();
 
 			} else {				
 
@@ -622,7 +622,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus(std::string("c"));
+					printFramebufferStatus();
 
 			}
 
@@ -667,7 +667,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 											_depthAttachmentID, 0);
 
 				if(!checkFramebufferStatus())
-					printFramebufferStatus(std::string("d"));
+					printFramebufferStatus();
 
 			} else {
 
@@ -685,7 +685,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus()) {
-					printFramebufferStatus(std::string("e"));
+					printFramebufferStatus();
 				}
 
 			}
@@ -787,11 +787,11 @@ FramebufferObject::parseModeString(const char *modeString) {
 	if (!modeString || strcmp(modeString, "") == 0)
 		return;
 
-	int  iDepthBits		= 0;
-	bool bHasStencil	= false;
-	bool bBind2D		= false;
-	bool bBindRECT		= false;
-	bool bBindCUBE		= false;
+	//int  iDepthBits		= 0;
+	//bool bHasStencil	= false;
+	//bool bBind2D		= false;
+	//bool bBindRECT		= false;
+	//bool bBindCUBE		= false;
 
 	_bColorAttachment	= false;
 	_bDepthAttachment	= false;
@@ -1066,7 +1066,7 @@ FramebufferObject::checkFramebufferStatus(void) {
 // -----------------------------------------------------------------------------
 
 void
-FramebufferObject::printFramebufferStatus(std::string tag) {
+FramebufferObject::printFramebufferStatus(void) {
 
 	switch(_framebufferStatus) {
 
@@ -1079,7 +1079,7 @@ FramebufferObject::printFramebufferStatus(std::string tag) {
 			break;
 
 		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT (" << tag << ")" << endl;
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << endl;
 			break; 
 
 		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT: 

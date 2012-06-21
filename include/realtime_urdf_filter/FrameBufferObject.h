@@ -66,7 +66,6 @@
 *	
 */
 
-
 #ifndef __FRAMEBUFFER_OBJECT__
 #define __FRAMEBUFFER_OBJECT__
 
@@ -76,8 +75,8 @@
 	#include <windows.h>
 #endif
 
-//#include <GL/gl.h>
-//#include <GL/glext.h>
+//#include <gl/gl.h>
+//#include <gl/glext.h>
 
 ////#define GLH_EXT_SINGLE_FILE
 //#include <glh/glh_extensions.h>
@@ -162,7 +161,7 @@ public:
 
 	/// check errors using FBO extension function
 	bool						checkFramebufferStatus(void);
-	void						printFramebufferStatus(std::string tag);
+	void						printFramebufferStatus(void);
 
 	/// enable Texture Target
 	void						enableTextureTarget(void) { glEnable(_textureTarget); }
@@ -183,14 +182,47 @@ public:
 
 protected:
 
+	/// texture target, default: GL_TEXTURE_RECTANGLE_ARB
+	GLenum										_textureTarget;
+
+	/// format of the color texture, default: GL_RGBA
+	GLint										_colorFormat;
+	/// internal format of the depth texture, default: GL_RGBA
+	GLint										_internalColorFormat;
+	/// type of the color attachment, default: GL_UNSIGNED_BYTE
+	GLenum										_colorType;
+
+	/// color attachment depth
+	ColorAttachmentType							_colorAttachmentDepth;
+
+	/// format of the depth texture, default: GL_DEPTH_COMPONENT
+	GLenum										_depthFormat;
+	/// internal format of the depth texture, default: GL_DEPTH_COMPONENT24
+	///		other options: GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT32
+	GLenum										_internalDepthFormat;
+	/// type of the depth attachment, default: GL_UNSIGNED_BYTE
+	GLenum										_depthType;
+
+	/// wrap s parameter for color attachments, default: GL_CLAMP_TO_EDGE
+	GLint										_wrapS;
+	/// wrap t parameter for color attachments, default: GL_CLAMP_TO_EDGE
+	GLint										_wrapT;
+	
+	/// min filterfor texture interpolation, default: GL_LINEAR
+	GLint										_minFilter;
+	/// mag filterfor texture interpolation, default: GL_LINEAR
+	GLint										_magFilter;
+
+	/// width of the FBO
+	int											_width;
+	/// height of the FBO
+	int											_height;
+
 	/// FBO extension supported?
 	bool										_bFBOSupported;
 
 	/// FBO initialized?
 	bool										_bInitialized;
-
-	/// texture target, default: GL_TEXTURE_RECTANGLE_ARB
-	GLenum										_textureTarget;
 
 	///	use color attachment?
 	bool										_bColorAttachment;
@@ -211,39 +243,8 @@ protected:
 	/// internal stencil buffer format
 	GLint										_internalStencilFormat;
 
-	/// format of the color texture, default: GL_RGBA
-	GLint										_colorFormat;
-	/// internal format of the depth texture, default: GL_RGBA
-	GLint										_internalColorFormat;
-
-	/// format of the depth texture, default: GL_DEPTH_COMPONENT
-	GLenum										_depthFormat;
-	/// internal format of the depth texture, default: GL_DEPTH_COMPONENT24
-	///		other options: GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT32
-	GLenum										_internalDepthFormat;
-
-	/// type of the color attachment, default: GL_UNSIGNED_BYTE
-	GLenum										_colorType;
-	/// type of the depth attachment, default: GL_UNSIGNED_BYTE
-	GLenum										_depthType;
-
-	/// color attachment depth
-	ColorAttachmentType							_colorAttachmentDepth;
-
-	/// wrap s parameter for color attachments, default: GL_CLAMP_TO_EDGE
-	GLint										_wrapS;
-	/// wrap t parameter for color attachments, default: GL_CLAMP_TO_EDGE
-	GLint										_wrapT;
-	
-	/// min filterfor texture interpolation, default: GL_LINEAR
-	GLint										_minFilter;
-	/// mag filterfor texture interpolation, default: GL_LINEAR
-	GLint										_magFilter;
-
-	/// width of the FBO
-	int											_width;
-	/// height of the FBO
-	int											_height;
+  /// pass through shader program initialized?
+	bool										_bPassThroughProgramInitialized;
 
 	/// ID of the FBO
 	GLuint										_frameBufferID;
@@ -272,7 +273,6 @@ protected:
   GLenum _passthrough_program;
   GLenum _passthrough_fragment_shader;
 	GLuint										_passThroughProgram;
-	bool										_bPassThroughProgramInitialized;
 	
 	/// indicates if color buffer is a float texture
 	bool										_bFloatColorBuffer;

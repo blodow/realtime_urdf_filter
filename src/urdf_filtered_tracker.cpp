@@ -457,7 +457,7 @@ public:
       tf::Transform change_frame;
       change_frame.setOrigin(tf::Vector3(0, 0, 0));
       tf::Quaternion frame_rotation;
-      frame_rotation.setEulerZYX(1.5708, 0, 1.5708);
+      frame_rotation.setRPY(1.5708, 0, 1.5708);
       change_frame.setRotation(frame_rotation);
 
       transform = change_frame * transform;
