@@ -85,10 +85,11 @@ following can be launched from remote:
 
 .. code-block:: bash
 
-  #!/bin/bash
-  DISPLAY=:0
-  xhost +
-  roslaunch realtime_urdf_filter tracker.launch
+    #!/bin/bash
+    DISPLAY=:0
+    xhost +
+    roslaunch realtime_urdf_filter tracker.launch
+
 
 License
 -------
