@@ -35,7 +35,7 @@
 #include <tf/tf.h>
 // this is necessary for diamondback. for more recent ROS versions, use:
 // #include <urdf_interface/color.h>
-#include <urdf/color.h>
+#include <urdf_interface/color.h>
 
 // forward declare
 struct aiScene;

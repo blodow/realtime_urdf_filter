@@ -14,7 +14,6 @@
   <!-- right now, we find openni through pkg-config -->
   <!--depend package="openni" /-->
   <depend package="resource_retriever" />
-  <depend package="assimp" />
   <depend package="sensor_msgs" />
   <depend package="cv_bridge" />
   <export>

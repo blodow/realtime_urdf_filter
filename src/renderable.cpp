@@ -38,6 +38,7 @@
 #include <assimp/aiPostProcess.h>
 #include <assimp/IOStream.h>
 #include <assimp/IOSystem.h>
+#include <ros/assert.h>
 
 namespace realtime_urdf_filter
 {

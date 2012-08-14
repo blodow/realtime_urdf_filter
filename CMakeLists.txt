@@ -51,7 +51,9 @@ target_link_libraries (urdf_filter
   ${freeglut_LIBRARY} 
   ${OpenCV_LIBS}
   FBO
-  shaderwrapper)
+  shaderwrapper
+  assimp)
+rosbuild_link_boost(urdf_filter signals)
 
 rosbuild_add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
 target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI)
