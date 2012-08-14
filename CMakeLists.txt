@@ -61,3 +61,5 @@ target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI)
 rosbuild_add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
 target_link_libraries (realtime_urdf_filter urdf_filter)
 
+rosbuild_add_library (realtime_urdf_filter_nodelet src/realtime_urdf_filter_nodelet.cpp)
+target_link_libraries (realtime_urdf_filter_nodelet urdf_filter)

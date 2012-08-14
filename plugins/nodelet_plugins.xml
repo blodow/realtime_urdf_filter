@@ -1,0 +1,8 @@
+<library path="lib/librealtime_urdf_filter_nodelet">
+  <class name="realtime_urdf_filter/RealtimeURDFFilterNodelet" type="realtime_urdf_filter::RealtimeURDFFilterNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet for running a relatime URDF point cloud filter.
+    </description>
+  </class>
+</library>
+

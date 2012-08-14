@@ -16,8 +16,10 @@
   <depend package="resource_retriever" />
   <depend package="sensor_msgs" />
   <depend package="cv_bridge" />
+  <depend package="nodelet" />
   <export>
     <cpp cflags="-I${prefix}/include" />
+    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
   </export>
 
 </package>
