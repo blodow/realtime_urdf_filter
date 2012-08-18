@@ -37,6 +37,7 @@
 #include <tf/transform_listener.h>
 
 #include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
 
 #include "realtime_urdf_filter/FrameBufferObject.h"
 #include "realtime_urdf_filter/shader_wrapper.h"
@@ -93,8 +94,10 @@ class RealtimeURDFFilter
     // ROS objects
     ros::NodeHandle &nh_;
     tf::TransformListener tf_;
-    ros::Publisher mask_pub_;
-    ros::Publisher depth_pub_;
+    image_transport::ImageTransport image_transport_;
+    image_transport::CameraSubscriber depth_sub_;
+    image_transport::Publisher depth_pub_;
+    image_transport::Publisher mask_pub_;
 
     // rendering objects
     FramebufferObject *fbo_;

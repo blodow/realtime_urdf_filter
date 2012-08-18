@@ -1,0 +1,14 @@
+<launch>
+  <!-- Create nodelet manager -->
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+
+  <!-- Launch nodelet -->
+  <node pkg="nodelet" type="nodelet" name="RealtimeURDFFilter" args="load realtime_urdf_filter/RealtimeURDFFilterNodelet standalone_nodelet" output="screen">
+    <remap from="input_depth" to="/camera/depth_registered"/>
+    <remap from="output_depth" to="/urdf_filtered_depth_registered" />
+    <remap from="output_mask" to="/urdf_filtered_mask" />
+
+    <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
+  </node>                 
+</launch>
+

@@ -31,6 +31,7 @@
 #include "realtime_urdf_filter/urdf_filter.h"
 
 #include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
 //#define USE_OWN_CALIBRATION
@@ -40,6 +41,7 @@ using namespace realtime_urdf_filter;
 // constructor. sets up ros and reads in parameters
 RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **argv)
   : nh_(nh)
+  , image_transport_(nh)
   , fbo_initialized_(false)
   , depth_image_pbo_ (GL_INVALID_VALUE)
   , far_plane_ (8)
@@ -100,9 +102,10 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   ROS_INFO ("using filter replace value %f", filter_replace_value_);
 
   // setup publishers 
-  // TODO: make these topics parameters
-  mask_pub_ = nh_.advertise<sensor_msgs::Image> ("output_mask", 10);
-  depth_pub_ = nh_.advertise<sensor_msgs::Image> ("output", 10);
+  depth_sub_ = image_transport_.subscribeCamera("input_depth", 10,
+      boost::bind(&RealtimeURDFFilter::filter_callback, this, _1, _2));
+  depth_pub_ = image_transport_.advertise("output_depth", 10);
+  mask_pub_ = image_transport_.advertise("output_mask", 10);
 }
 
 RealtimeURDFFilter::~RealtimeURDFFilter ()

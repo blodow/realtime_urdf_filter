@@ -46,6 +46,5 @@ namespace realtime_urdf_filter
     unsigned int argc_;
     char** argv_;
     boost::shared_ptr<realtime_urdf_filter::RealtimeURDFFilter> filter_;
-    boost::shared_ptr<realtime_urdf_filter::DepthAndInfoSubscriber> sub_;
   };
 }

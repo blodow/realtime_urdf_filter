@@ -30,7 +30,6 @@
 
 #include "realtime_urdf_filter/urdf_filter.h"
 #include "realtime_urdf_filter/urdf_renderer.h"
-#include "realtime_urdf_filter/depth_and_info_subscriber.h"
 
 #include <ros/node_handle.h>
 #include <ros/package.h>

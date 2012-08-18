@@ -57,7 +57,7 @@ namespace realtime_urdf_filter
       argc_ = 0;
     }
 
-    // Convert argv to c-style argc,argv
+    // Convert argv to c-style argc,argv for OpenGL subsystem
     args_ = this->getMyArgv();
     argc_ = args_.size();
     argv_ = new char*[argc_];
@@ -67,10 +67,10 @@ namespace realtime_urdf_filter
       strncpy(argv_[i], args_[i].c_str(), args_[i].size()+1);
     }
 
-    // create RealtimeURDFFilter and subcribe to ROS
+    // Get nodelet node handle
     ros::NodeHandle nh = this->getPrivateNodeHandle();
 
+    // Create the filter
     filter_.reset(new realtime_urdf_filter::RealtimeURDFFilter(nh, argc_, argv_));
-    sub_.reset(new realtime_urdf_filter::DepthAndInfoSubscriber(nh, boost::bind (&realtime_urdf_filter::RealtimeURDFFilter::filter_callback, filter_.get(), _1, _2)));
   }
 }

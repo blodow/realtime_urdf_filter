@@ -17,6 +17,7 @@
   <depend package="sensor_msgs" />
   <depend package="cv_bridge" />
   <depend package="nodelet" />
+  <depend package="image_transport" />
   <export>
     <cpp cflags="-I${prefix}/include" />
     <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
