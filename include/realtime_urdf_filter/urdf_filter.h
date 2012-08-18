@@ -68,7 +68,9 @@ class RealtimeURDFFilter
           const sensor_msgs::CameraInfo::ConstPtr& camera_info);
 
     // does virtual rendering and filtering based on depth buffer and opengl proj. matrix
-    void filter (unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp = ros::Time::now());
+    void filter (
+        unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp,
+        const sensor_msgs::CameraInfo::ConstPtr& camera_info);
 
     // copy cv::Mat1f to char buffer
     unsigned char* bufferFromDepthImage (cv::Mat1f depth_image);
@@ -92,12 +94,12 @@ class RealtimeURDFFilter
     
   public:
     // ROS objects
-    ros::NodeHandle &nh_;
+    ros::NodeHandle nh_;
     tf::TransformListener tf_;
     image_transport::ImageTransport image_transport_;
     image_transport::CameraSubscriber depth_sub_;
-    image_transport::Publisher depth_pub_;
-    image_transport::Publisher mask_pub_;
+    image_transport::CameraPublisher depth_pub_;
+    image_transport::CameraPublisher mask_pub_;
 
     // rendering objects
     FramebufferObject *fbo_;

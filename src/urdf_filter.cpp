@@ -44,6 +44,8 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   , image_transport_(nh)
   , fbo_initialized_(false)
   , depth_image_pbo_ (GL_INVALID_VALUE)
+  , width_(0)
+  , height_(0)
   , far_plane_ (8)
   , near_plane_ (0.1)
   , argc_ (argc), argv_(argv)
@@ -103,9 +105,9 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
 
   // setup publishers 
   depth_sub_ = image_transport_.subscribeCamera("input_depth", 10,
-      boost::bind(&RealtimeURDFFilter::filter_callback, this, _1, _2));
-  depth_pub_ = image_transport_.advertise("output_depth", 10);
-  mask_pub_ = image_transport_.advertise("output_mask", 10);
+      &RealtimeURDFFilter::filter_callback, this);
+  depth_pub_ = image_transport_.advertiseCamera("output_depth", 10);
+  mask_pub_ = image_transport_.advertiseCamera("output_mask", 10);
 }
 
 RealtimeURDFFilter::~RealtimeURDFFilter ()
@@ -173,14 +175,22 @@ double RealtimeURDFFilter::getTime ()
   return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
 }
 
-void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp)
+void RealtimeURDFFilter::filter (
+    unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp,
+    const sensor_msgs::CameraInfo::ConstPtr& camera_info)
 {
   if (width_ != width || height_ != height)
   {
+    // TODO: Deal with this error better (like, re-init opengl etc)
     ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
     width_ = width;
     height_ = height;
-    initGL ();
+    this->initGL ();
+  }
+  
+  // Load models / construct renderers
+  if(renderers_.empty()) {
+    return;
   }
 
   if (mask_pub_.getNumSubscribers() > 0)
@@ -216,7 +226,7 @@ void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width,
     out_masked_depth.header.stamp = timestamp;
     out_masked_depth.encoding = "32FC1";
     out_masked_depth.image = masked_depth_image;
-    depth_pub_.publish (out_masked_depth.toImageMsg ());
+    depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
   }
 
   if (mask_pub_.getNumSubscribers() > 0)
@@ -228,7 +238,7 @@ void RealtimeURDFFilter::filter (unsigned char* buffer, double* glTf, int width,
     out_mask.header.stamp = timestamp;
     out_mask.encoding = "mono8";
     out_mask.image = mask_image;
-    mask_pub_.publish (out_mask.toImageMsg ());
+    mask_pub_.publish (out_mask.toImageMsg (), camera_info);
   }
 }
 
@@ -254,7 +264,12 @@ void RealtimeURDFFilter::filter_callback
   double glTf[16];
   getProjectionMatrix (camera_info, glTf);
 
-  filter (buffer, glTf, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp);
+  if (depth_image.cols == 0 || depth_image.rows  == 0) {
+    ROS_WARN("Bad image size: %d cols, %d rows.", depth_image.cols, depth_image.rows);
+    return;
+  }
+
+  filter (buffer, glTf, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp, camera_info);
 }
 
 void RealtimeURDFFilter::textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes)
@@ -327,13 +342,18 @@ void RealtimeURDFFilter::initGL ()
   GLenum err = glewInit();
   if (GLEW_OK != err)
   {
-    std::cout << "ERROR: could not initialize GLEW!" << std::endl;
+    ROS_ERROR( "ERROR: could not initialize GLEW!");
   }
 
   // set up FBO and load URDF models + meshes onto GPU
-  initFrameBufferObject ();
+  this->initFrameBufferObject ();
   loadModels ();
-  std::cout << " --- Initialization done. ---" << std::endl;
+  // Make sure we loaded something!
+  if(renderers_.empty()) { 
+    ROS_ERROR("Could not load any models for filtering!");
+  } else {
+    ROS_INFO_STREAM("Loaded "<<renderers_.size()<<" models for filtering.");
+  }
   masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
   mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
 }

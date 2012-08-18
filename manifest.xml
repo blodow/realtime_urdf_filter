@@ -18,6 +18,9 @@
   <depend package="cv_bridge" />
   <depend package="nodelet" />
   <depend package="image_transport" />
+
+  <rosdep name="libglew-dev"/>
+
   <export>
     <cpp cflags="-I${prefix}/include" />
     <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
