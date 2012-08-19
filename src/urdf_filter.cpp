@@ -341,19 +341,18 @@ void RealtimeURDFFilter::filter (
   static double last = getTime ();
   double now = getTime ();
 
-  if (++count == 30 || (now - last) > 5)
-  {
+  if (++count == 30 || (now - last) > 5) {
     std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
     count = 0;
     last = now;
   }
 
   // get depth_image into OpenGL texture buffer
-  int size_in_bytes = width_ * height_ * sizeof(float);
+  int size_in_bytes = width_ * height_ * sizeof(GL_FLOAT);
   textureBufferFromDepthBuffer(buffer, size_in_bytes);
 
   // render everything
-  render (glTf);
+  this->render(glTf);
 }
 
 // set up OpenGL stuff
@@ -371,7 +370,7 @@ void RealtimeURDFFilter::initGL ()
     //for now, we can just hid it (see below)
     
     // The debug window shows a 3x2 grid of images
-    glutInitWindowSize (3*width_, height_);
+    glutInitWindowSize (960, 480);
     glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
     glutCreateWindow ("Realtime URDF Filter Debug Window");
 
@@ -440,6 +439,7 @@ void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int
 {
   // check if we already have a PBO and Texture Buffer
   if (depth_image_pbo_ == GL_INVALID_VALUE) {
+    ROS_INFO("Generating pBuffer Object...");
     glGenBuffers (1, &depth_image_pbo_);
     glGenTextures (1, &depth_texture_);
   }

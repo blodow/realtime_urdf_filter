@@ -677,9 +677,6 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
       // glBindTexture( _textureTarget, 0);
 
       // attach texture to framebuffer color buffer
-      // FIXME: This fails with the following on ubuntu 12.04, Ivy Bridge HD4000:
-      //   FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT
-      //   realtime_urdf_filter: main/fbobject.c:1915: reuse_framebuffer_texture_attachment: Assertion `src_att->Renderbuffer != ((void *)0)' failed.
       glFramebufferTexture2D(
           GL_FRAMEBUFFER, 
           GL_DEPTH_ATTACHMENT, 
