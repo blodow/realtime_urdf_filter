@@ -1,3 +1,5 @@
+WARNING: This fork is currently not in operational condition. - 8-19-2012
+
 realtime_urdf_filter
 ====================
 
