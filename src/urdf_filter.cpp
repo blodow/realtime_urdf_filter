@@ -185,7 +185,7 @@ void RealtimeURDFFilter::filter_callback
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
   try {
-    orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
+    orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_32FC1);
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
@@ -193,7 +193,7 @@ void RealtimeURDFFilter::filter_callback
 
   // Convert the depth image into a char buffer
   cv::Mat1f depth_image = orig_depth_img->image;
-  unsigned char *buffer = bufferFromDepthImage (depth_image);
+  unsigned char *buffer = bufferFromDepthImage(depth_image);
 
   // Compute the projection matrix from the camera_info 
   double glTf[16];
@@ -348,7 +348,7 @@ void RealtimeURDFFilter::filter (
   }
 
   // get depth_image into OpenGL texture buffer
-  int size_in_bytes = width_ * height_ * sizeof(GL_FLOAT);
+  int size_in_bytes = width_ * height_ * sizeof(float);
   textureBufferFromDepthBuffer(buffer, size_in_bytes);
 
   // render everything
@@ -414,12 +414,8 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 
 #ifdef USE_FBO_CLASS
   fbo_ = new FramebufferObject("rgba=4x32t depth=24t stencil=8t");
-
   fbo_->initialize(width_, height_);
 #else
-  
-
-
 #endif
 
   fbo_initialized_ = true;
