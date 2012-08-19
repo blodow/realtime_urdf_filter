@@ -34,6 +34,8 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
+#define USE_FBO_CLASS
+
 //#define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
@@ -175,48 +177,6 @@ double RealtimeURDFFilter::getTime ()
   return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
 }
 
-void RealtimeURDFFilter::filter (
-    unsigned char* buffer, double* glTf, int width, int height)
-{
-  if (width_ != width || height_ != height)
-  {
-    // TODO: Deal with this error better (like, re-init opengl etc)
-    ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
-    width_ = width;
-    height_ = height;
-    this->initGL ();
-  }
-  
-  // Load models / construct renderers
-  if(renderers_.empty()) {
-    return;
-  }
-
-  if (mask_pub_.getNumSubscribers() > 0)
-    need_mask_ = true;
-  else
-    need_mask_ = false;
-
-  // Timing
-  static unsigned count = 0;
-  static double last = getTime ();
-  double now = getTime ();
-
-  if (++count == 30 || (now - last) > 5)
-  {
-    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
-    count = 0;
-    last = now;
-  }
-
-  // get depth_image into OpenGL texture buffer
-  int size_in_bytes = width_ * height_ * sizeof(float);
-  textureBufferFromDepthBuffer (buffer, size_in_bytes);
-
-  // render everything
-  render (glTf);
-}
-
 // callback function that gets ROS images and does everything
 void RealtimeURDFFilter::filter_callback
      (const sensor_msgs::ImageConstPtr& ros_depth_image,
@@ -224,25 +184,20 @@ void RealtimeURDFFilter::filter_callback
 {
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
-  try
-  {
+  try {
     orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
-  }
-  catch (cv_bridge::Exception& e)
-  {
+  } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
   }
-  cv::Mat1f depth_image = orig_depth_img->image;
 
+  // Convert the depth image into a char buffer
+  cv::Mat1f depth_image = orig_depth_img->image;
   unsigned char *buffer = bufferFromDepthImage (depth_image);
+
+  // Compute the projection matrix from the camera_info 
   double glTf[16];
   getProjectionMatrix (camera_info, glTf);
-
-  if (depth_image.cols == 0 || depth_image.rows  == 0) {
-    ROS_WARN("Bad image size: %d cols, %d rows.", depth_image.cols, depth_image.rows);
-    return;
-  }
 
   // Filter the image
   this->filter(buffer, glTf, depth_image.cols, depth_image.rows);
@@ -270,109 +225,6 @@ void RealtimeURDFFilter::filter_callback
     out_mask.image = mask_image;
     mask_pub_.publish (out_mask.toImageMsg (), camera_info);
   }
-}
-
-void RealtimeURDFFilter::textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes)
-{
-  // check if we already have a PBO and Texture Buffer
-  if (depth_image_pbo_ == GL_INVALID_VALUE)
-  {
-    glGenBuffers (1, &depth_image_pbo_);
-    glGenTextures (1, &depth_texture_);
-  }
-
-  glBindBuffer (GL_ARRAY_BUFFER, depth_image_pbo_);
-
-  // upload buffer data to GPU
-  glBufferData (GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
-  glBindBuffer (GL_ARRAY_BUFFER, 0);
-
-  // assign PBO to Texture Buffer
-  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
-  glTexBuffer (GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
-}
-
-unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
-{
-  // Host buffer to hold depth pixel data
-  static unsigned char* buffer = 0;
-
-  // get pixel data from cv::Mat as one continuous buffer
-  int row_size = depth_image.cols * depth_image.elemSize();
-  if (depth_image.isContinuous())
-  {
-    buffer = depth_image.data;
-  }
-  else
-  {
-    if (buffer == 0)
-    {
-      std::cout << "(re)allocating opengl depth buffer" << std::endl;
-      buffer = (unsigned char*) malloc (row_size * depth_image.rows);
-    }
-    for (int i = 0; i < depth_image.rows; i++)
-      memcpy ((void*)(buffer + i * row_size), (void*) &depth_image.data[i], row_size);
-  }
-
-  return buffer;
-}
-
-// set up OpenGL stuff
-void RealtimeURDFFilter::initGL ()
-{
-  static bool gl_initialized = false;
-  //TODO: change this to use an offscreen pbuffer, so no window is necessary
-  if (!gl_initialized)
-  {
-    glutInit (&argc_, argv_);
-
-    // the window will show 3x2 grid of images
-    glutInitWindowSize (960, 480);
-    glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
-    glutCreateWindow ("Realtime URDF Filter Debug Window");
-
-    gl_initialized = true;
-    if (!show_gui_)
-    {
-        glutHideWindow ();
-    }
-  }
-
-  // initialize glew library
-  GLenum err = glewInit();
-  if (GLEW_OK != err)
-  {
-    ROS_ERROR( "ERROR: could not initialize GLEW!");
-  }
-
-  // set up FBO and load URDF models + meshes onto GPU
-  this->initFrameBufferObject ();
-  loadModels ();
-  // Make sure we loaded something!
-  if(renderers_.empty()) { 
-    ROS_ERROR("Could not load any models for filtering!");
-  } else {
-    ROS_INFO_STREAM("Loaded "<<renderers_.size()<<" models for filtering.");
-  }
-  masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
-  mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
-}
-
-// set up FBO
-void RealtimeURDFFilter::initFrameBufferObject ()
-{
-  fbo_ = new FramebufferObject ("rgba=4x32t depth=24t stencil=8t");
-
-  fbo_->initialize (width_, height_);
-  fbo_initialized_ = true;
-
-  GLenum err = glGetError();
-  if(err != GL_NO_ERROR)
-    printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
-
-  GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if(status != GL_FRAMEBUFFER_COMPLETE)
-    printf("OpenGL FrameBuffer ERROR after FBO initialization: %i\n", status);
 }
 
 // compute Projection matrix from CameraInfo message
@@ -431,11 +283,180 @@ void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::Con
   glTf[11]= -1;
 }
 
-void RealtimeURDFFilter::render (const double* camera_projection_matrix)
+unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
 {
-  if (!fbo_initialized_)
-    return;
+  // Host buffer to hold depth pixel data
+  static unsigned char* buffer = NULL;
 
+  // Try to get the pixel data from cv::Mat as one continuous buffer
+  if (depth_image.isContinuous()) {
+    buffer = depth_image.data;
+  } else {
+    // Get the size of each row in bytes
+    int row_size = depth_image.cols * depth_image.elemSize();
+
+    // Allocate the buffer
+    if (buffer == NULL) {
+      std::cout << "(re)allocating opengl depth buffer" << std::endl;
+      buffer = (unsigned char*) malloc(row_size * depth_image.rows);
+    }
+
+    // Copy the image row by row
+    for (int i = 0; i < depth_image.rows; i++) {
+      memcpy(
+          (void*)(buffer + i * row_size), 
+          (void*) &depth_image.data[i],
+          row_size);
+    }
+  }
+
+  return buffer;
+}
+
+void RealtimeURDFFilter::filter (
+    unsigned char* buffer, double* glTf, int width, int height)
+{
+  if (width_ != width || height_ != height) {
+    if(width_ !=0 || height_!=0) {
+      ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
+    }
+    width_ = width;
+    height_ = height;
+    this->initGL();
+  }
+  
+  // Load models / construct renderers
+  if(renderers_.empty()) {
+    return;
+  }
+
+  if (mask_pub_.getNumSubscribers() > 0) {
+    need_mask_ = true;
+  } else {
+    need_mask_ = false;
+  }
+
+  // Timing
+  static unsigned count = 0;
+  static double last = getTime ();
+  double now = getTime ();
+
+  if (++count == 30 || (now - last) > 5)
+  {
+    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
+    count = 0;
+    last = now;
+  }
+
+  // get depth_image into OpenGL texture buffer
+  int size_in_bytes = width_ * height_ * sizeof(float);
+  textureBufferFromDepthBuffer(buffer, size_in_bytes);
+
+  // render everything
+  render (glTf);
+}
+
+// set up OpenGL stuff
+void RealtimeURDFFilter::initGL ()
+{
+  static bool gl_initialized = false;
+
+  ROS_INFO("Initializing OpenGL subsystem...");
+
+  if (!gl_initialized) {
+    // Initialize GLUT
+    glutInit (&argc_, argv_);
+
+    //TODO: change this to use an offscreen pbuffer, so no window is necessary,
+    //for now, we can just hid it (see below)
+    
+    // The debug window shows a 3x2 grid of images
+    glutInitWindowSize (3*width_, height_);
+    glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
+    glutCreateWindow ("Realtime URDF Filter Debug Window");
+
+    // Hide the GLUT window
+    if (!show_gui_) {
+      glutHideWindow();
+    }
+
+    gl_initialized = true;
+  }
+
+  // initialize OpenGL Extension Wrangler library
+  GLenum err = glewInit();
+  if (GLEW_OK != err) {
+    throw std::runtime_error("ERROR: could not initialize GLEW!");
+  }
+
+  // Set up FBO 
+  // FIXME: Replace this with more robust / specialized FBO
+  this->initFrameBufferObject();
+
+  // Load URDF models + meshes onto GPU
+  this->loadModels();
+
+  // Make sure we loaded something!
+  if(renderers_.empty()) { 
+    throw std::runtime_error("Could not load any models for filtering!");
+  } else {
+    ROS_INFO_STREAM("Loaded "<<renderers_.size()<<" models for filtering.");
+  }
+  
+  // Alocate buffer for the masked depth image (float) 
+  masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
+  // Alocate buffer for the mask (uchar) 
+  mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
+}
+
+// set up FBO
+void RealtimeURDFFilter::initFrameBufferObject ()
+{
+
+#ifdef USE_FBO_CLASS
+  fbo_ = new FramebufferObject("rgba=4x32t depth=24t stencil=8t");
+
+  fbo_->initialize(width_, height_);
+#else
+  
+
+
+#endif
+
+  fbo_initialized_ = true;
+
+  GLenum err = glGetError();
+  if(err != GL_NO_ERROR) {
+    printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
+  }
+
+  GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if(status != GL_FRAMEBUFFER_COMPLETE) {
+    printf("OpenGL FrameBuffer ERROR after FBO initialization: %i\n", status);
+  }
+}
+
+void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int size_in_bytes)
+{
+  // check if we already have a PBO and Texture Buffer
+  if (depth_image_pbo_ == GL_INVALID_VALUE) {
+    glGenBuffers (1, &depth_image_pbo_);
+    glGenTextures (1, &depth_texture_);
+  }
+
+  glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);
+
+  // upload buffer data to GPU
+  glBufferData(GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // assign PBO to Texture Buffer
+  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
+  glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
+}
+
+void RealtimeURDFFilter::render (const double* camera_projection_matrix)
+{   
   static const GLenum buffers[] = {
     GL_COLOR_ATTACHMENT0,
     GL_COLOR_ATTACHMENT1,
@@ -443,67 +464,84 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     GL_COLOR_ATTACHMENT3
   };
 
+  GLenum err;
+
+  // Check if the framebuffer object has been initialized
+  if (!fbo_initialized_) {
+    return;
+  }
+
   // get transformation from camera to "fixed frame"
   tf::StampedTransform t;
-  try
-  {
+  try {
     tf_.lookupTransform (cam_frame_, fixed_frame_, ros::Time (), t);
-  }
-  catch (tf::TransformException ex)
-  {
+  } catch (tf::TransformException ex) {
     ROS_ERROR("%s",ex.what());
     return;
   }
 
-  GLenum err = glGetError();
-  if(err != GL_NO_ERROR)
-    printf("OpenGL ERROR at beginning of rendering: %s\n", gluErrorString(err));
+  err = glGetError();
+  if(err != GL_NO_ERROR) {
+    ROS_ERROR("OpenGL ERROR at beginning of rendering: %s\n", gluErrorString(err));
+    return;
+  }
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glEnable(GL_NORMALIZE);
 
-  // render into FBO
+#ifdef USE_FBO_CLASS
+  // Render into FBO
   fbo_->beginCapture();
+#else
 
-  // create shader programs
-  static ShaderWrapper shader = ShaderWrapper::fromFiles
-    ("package://realtime_urdf_filter/include/shaders/urdf_filter.vert", 
-     "package://realtime_urdf_filter/include/shaders/urdf_filter.frag");
+#endif
+
+  // Create shader programs
+  static ShaderWrapper shader = ShaderWrapper::fromFiles(
+      "package://realtime_urdf_filter/include/shaders/urdf_filter.vert", 
+      "package://realtime_urdf_filter/include/shaders/urdf_filter.frag");
 
   err = glGetError();
-  if(err != GL_NO_ERROR)
-    printf("OpenGL ERROR compiling shaders: %s\n", gluErrorString(err));
+  if(err != GL_NO_ERROR) {
+    ROS_ERROR("OpenGL ERROR compiling shaders: %s\n", gluErrorString(err));
+    return;
+  }
   
-  // enable shader for this frame
-  shader ();
+  // Enable shader for this frame
+  shader();
 
+  // Specify the list of color buffers to draw into
   glDrawBuffers(sizeof(buffers) / sizeof(GLenum), buffers);
 
-  // clear the buffers
+  //Cclear the buffers
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClearStencil(0x0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
-  fbo_->disableTextureTarget();
 
-  // setup camera projection
+#ifdef USE_FBO_CLASS
+  fbo_->disableTextureTarget();
+#else
+#endif
+
+  // Setup camera projection
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity();
 
-  // load camera projection matrix into OpenGL camera matrix
+  // Load camera projection matrix into OpenGL camera matrix
   glMultMatrixd(camera_projection_matrix);
 
-  // setup camera position
+  // Setup camera position
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  // kinect has x right, y down, z into image
+  // Kinect has x right, y down, z into image
   gluLookAt (0,0,0, 0,0,1, 0,1,0);
   
-  // draw background quad behind everything (just before the far plane)
-  // otherwise, the shader only sees kinect points where he rendered stuff
+  // Draw background quad behind everything (just before the far plane)
+  // Otherwise, the shader only sees kinect points where he rendered stuff
   glBegin(GL_QUADS);
     glVertex3f(-10.0, -10.0, far_plane_*0.99);
     glVertex3f( 10.0, -10.0, far_plane_*0.99);
@@ -511,18 +549,18 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glVertex3f(-10.0,  10.0, far_plane_*0.99);
   glEnd();
  
-  // apply user-defined camera offset transformation (launch file)
+  // Apply user-defined camera offset transformation (launch file)
   tf::Transform transform (camera_offset_q_, camera_offset_t_);
   btScalar glTf[16];
   transform.inverse().getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
 
-  // apply camera to "fixed frame" transform (world coordinates)
+  // Apply camera to "fixed frame" transform (world coordinates)
   t.getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
   
-  // set up stencil buffer etc.
-  // the background quad is not in the stencil buffer
+  // Set up stencil buffer etc.
+  // The background quad is not in the stencil buffer
   glEnable(GL_STENCIL_TEST);
   glStencilFunc(GL_ALWAYS, 0x1, 0x1);
   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -541,21 +579,27 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
   // render every renderable / urdf model
   std::vector<URDFRenderer*>::const_iterator r;
-  for (r = renderers_.begin (); r != renderers_.end (); r++)
+  for (r = renderers_.begin (); r != renderers_.end (); r++) {
     (*r)->render ();
+  }
 
-  // disable shader
+  // Disable shader
   glUseProgram((GLuint)NULL);
   
+#ifdef USE_FBO_CLASS
   fbo_->endCapture();
+#else
+#endif
   glPopAttrib();
 
-  if (need_mask_ || show_gui_)
-  {
-    // use stencil buffer to draw a red / blue mask into color attachment 3
+  // Use stencil buffer to draw a red / blue mask into color attachment 3
+  if (need_mask_ || show_gui_) {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
 
+#ifdef USE_FBO_CLASS
     fbo_->beginCapture();
+#else
+#endif
     glDrawBuffer(GL_COLOR_ATTACHMENT3);
 
     glEnable(GL_STENCIL_TEST);
@@ -564,28 +608,31 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
+#ifdef USE_FBO_CLASS
     fbo_->disableTextureTarget();
+#else
+#endif
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+      glLoadIdentity();
+      gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-    glMatrixMode(GL_MODELVIEW);	
-    glPushMatrix();
-    glLoadIdentity();
+      glMatrixMode(GL_MODELVIEW);	
+      glPushMatrix();
+        glLoadIdentity();
 
-    glColor3f(1.0, 0.0, 0.0);
+        glColor3f(1.0, 0.0, 0.0);
 
-    glBegin(GL_QUADS);
-      glVertex2f(0.0, 0.0);
-      glVertex2f(1.0, 0.0);
-      glVertex2f(1.0, 1.0);
-      glVertex2f(0.0, 1.0);
-    glEnd();
+        glBegin(GL_QUADS);
+          glVertex2f(0.0, 0.0);
+          glVertex2f(1.0, 0.0);
+          glVertex2f(1.0, 1.0);
+          glVertex2f(0.0, 1.0);
+        glEnd();
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
     glStencilFunc(GL_EQUAL, 0x0, 0x1);
@@ -593,122 +640,140 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
+#ifdef USE_FBO_CLASS
     fbo_->disableTextureTarget();
+#else
+#endif
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+      glLoadIdentity();
+      gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-    glMatrixMode(GL_MODELVIEW);	
-    glPushMatrix();
-    glLoadIdentity();
+      glMatrixMode(GL_MODELVIEW);	
+      glPushMatrix();
+        glLoadIdentity();
 
-    glColor3f(0.0, 0.0, 1.0);
+        glColor3f(0.0, 0.0, 1.0);
 
-    glBegin(GL_QUADS);
-      glVertex2f(0.0, 0.0);
-      glVertex2f(1.0, 0.0);
-      glVertex2f(1.0, 1.0);
-      glVertex2f(0.0, 1.0);
-    glEnd();
+        glBegin(GL_QUADS);
+          glVertex2f(0.0, 0.0);
+          glVertex2f(1.0, 0.0);
+          glVertex2f(1.0, 1.0);
+          glVertex2f(0.0, 1.0);
+        glEnd();
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     
+#ifdef USE_FBO_CLASS
     fbo_->endCapture();
+#else
+#endif
 
     glPopAttrib();
   }
 
-  if (show_gui_)
-  {
-    // -----------------------------------------------------------------------
-    // -----------------------------------------------------------------------
-    // render all color buffer attachments into window
-
+  // Render all color buffer attachments into window
+  if (show_gui_) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
+      glLoadIdentity();
+      gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-    glMatrixMode(GL_MODELVIEW);	
-    glPushMatrix();
-    glLoadIdentity();
+      glMatrixMode(GL_MODELVIEW);	
+      glPushMatrix();
+        glLoadIdentity();
 
-    // draw color buffer 0
-    fbo_->bind(0);
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, fbo_->getHeight());
-      glVertex2f(0.0, 0.5);
-      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-      glVertex2f(0.333, 0.5);
-      glTexCoord2f(fbo_->getWidth(), 0.0);
-      glVertex2f(0.333, 1.0);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(0.0, 1.0);
-    glEnd();
+        // draw color buffer 0
+#ifdef USE_FBO_CLASS
+        fbo_->bind(0);
+#else
+#endif
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, height_);
+          glVertex2f(0.0, 0.5);
+          glTexCoord2f(width_, height_);
+          glVertex2f(0.333, 0.5);
+          glTexCoord2f(width_, 0.0);
+          glVertex2f(0.333, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(0.0, 1.0);
+        glEnd();
 
-    // draw color buffer 1
-    fbo_->bind(1);
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, fbo_->getHeight());
-      glVertex2f(0.0, 0.0);
-      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-      glVertex2f(0.333, 0.0);
-      glTexCoord2f(fbo_->getWidth(), 0.0);
-      glVertex2f(0.333, 0.5);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(0.0, 0.5);
-    glEnd();
+        // draw color buffer 1
+#ifdef USE_FBO_CLASS
+        fbo_->bind(1);
+#else
+#endif
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, height_);
+          glVertex2f(0.0, 0.0);
+          glTexCoord2f(width_, height_);
+          glVertex2f(0.333, 0.0);
+          glTexCoord2f(width_, 0.0);
+          glVertex2f(0.333, 0.5);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(0.0, 0.5);
+        glEnd();
 
-    // draw color buffer 2
-    fbo_->bind(2);
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, fbo_->getHeight());
-      glVertex2f(0.333, 0.5);
-      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-      glVertex2f(0.666, 0.5);
-      glTexCoord2f(fbo_->getWidth(), 0.0);
-      glVertex2f(0.666, 1.0);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(0.333, 1.0);
-    glEnd();
+        // draw color buffer 2
+#ifdef USE_FBO_CLASS
+        fbo_->bind(2);
+#else
+#endif
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, height_);
+          glVertex2f(0.333, 0.5);
+          glTexCoord2f(width_, height_);
+          glVertex2f(0.666, 0.5);
+          glTexCoord2f(width_, 0.0);
+          glVertex2f(0.666, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(0.333, 1.0);
+        glEnd();
 
-    // draw color buffer 3
-    fbo_->bind(3);
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, fbo_->getHeight());
-      glVertex2f(0.333, 0.0);
-      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-      glVertex2f(0.666, 0.0);
-      glTexCoord2f(fbo_->getWidth(), 0.0);
-      glVertex2f(0.666, 0.5);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(0.333, 0.5);
-    glEnd();
+        // draw color buffer 3
+#ifdef USE_FBO_CLASS
+        fbo_->bind(3);
+#else
+#endif
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, height_);
+          glVertex2f(0.333, 0.0);
+          glTexCoord2f(width_, height_);
+          glVertex2f(0.666, 0.0);
+          glTexCoord2f(width_, 0.0);
+          glVertex2f(0.666, 0.5);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(0.333, 0.5);
+        glEnd();
 
-    // draw depth buffer 
-    fbo_->bindDepth();
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, fbo_->getHeight());
-      glVertex2f(0.666, 0.5);
-      glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
-      glVertex2f(1.0, 0.5);
-      glTexCoord2f(fbo_->getWidth(), 0.0);
-      glVertex2f(1.0, 1.0);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(0.666, 1.0);
-    glEnd();
+        // draw depth buffer 
+#ifdef USE_FBO_CLASS
+        fbo_->bindDepth();
+#else
+#endif
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, height_);
+          glVertex2f(0.666, 0.5);
+          glTexCoord2f(width_, height_);
+          glVertex2f(1.0, 0.5);
+          glTexCoord2f(width_, 0.0);
+          glVertex2f(1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(0.666, 1.0);
+        glEnd();
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode(GL_PROJECTION);
     glPopMatrix();
   } 
 
+#ifdef USE_FBO_CLASS
   fbo_->bind(1);
   glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_FLOAT, masked_depth_);
   if (need_mask_)
@@ -716,15 +781,14 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     fbo_->bind(3);
     glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_UNSIGNED_BYTE, mask_);
   }
+#else
+#endif
 
-  // ok, finished with all OpenGL, let's swap!
-  if (show_gui_)
-  {
+  // Ok, finished with all OpenGL, let's swap!
+  if (show_gui_) {
     glutSwapBuffers ();
     glutPostRedisplay();
     glutMainLoopEvent ();
   }
   // TODO: this necessary? glFlush ();
 }
-
-
