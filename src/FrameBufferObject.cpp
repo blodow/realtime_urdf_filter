@@ -110,7 +110,7 @@ FramebufferObject::FramebufferObject(const char *strMode) :
 	_stencilDepth(1),
 
 	// currently not used!
-	_internalStencilFormat(GL_STENCIL_INDEX1_EXT),
+	_internalStencilFormat(GL_STENCIL_INDEX1),
 
 	_bPassThroughProgramInitialized(false),
 
@@ -133,7 +133,7 @@ FramebufferObject::~FramebufferObject() {
 				if(_bColorAttachmentRenderTexture) 
 					glDeleteTextures(1, &_colorAttachmentID[i]);
 				else
-					glDeleteRenderbuffersEXT(1, &_colorAttachmentID[i]);
+					glDeleteRenderbuffers(1, &_colorAttachmentID[i]);
 			}
 		} 
 
@@ -141,10 +141,10 @@ FramebufferObject::~FramebufferObject() {
 			if(_bDepthAttachmentRenderTexture) 
 				glDeleteTextures(1, &_depthAttachmentID);
 			else
-				glDeleteRenderbuffersEXT(1, &_depthAttachmentID);
+				glDeleteRenderbuffers(1, &_depthAttachmentID);
 		}
 
-		glDeleteFramebuffersEXT(1, &_frameBufferID);
+		glDeleteFramebuffers(1, &_frameBufferID);
 			
 	}
 
@@ -256,7 +256,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 	//if (!glh_init_extensions(	"GL_ARB_fragment_program "
 	//													"GL_ARB_vertex_program "
 	//													"GL_NV_float_buffer "
-	//													"GL_EXT_framebuffer_object "))
+	//													"GL_ARB_framebuffer_object "))
 	//{
 	//		printf("Unable to load the following extension(s): %s\n\nExiting...\n", 
 	//						glh_get_unsupported_extensions());
@@ -271,6 +271,10 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 
 	if(!GLEW_EXT_multi_draw_arrays)
 		cout << "ERROR: FramebufferObject - GLEW_EXT_multi_draw_arrays not supported!" << endl;
+
+	if(!GLEW_ARB_framebuffer_object)
+		cout << "ERROR: FramebufferObject - GL_ARB_framebuffer_object not supported!" << endl;
+
 
 	//---------------------------------------------------------------------
 	//	create pass-throug programs
@@ -305,8 +309,8 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 		glPushAttrib(GL_TEXTURE_BIT);
 
 		// create FBO
-		glGenFramebuffersEXT(1, &_frameBufferID);
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _frameBufferID);
+		glGenFramebuffers(1, &_frameBufferID);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferID);
 		
 		if(_bColorAttachment) {
 
@@ -372,8 +376,8 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 									NULL);
 
 					// attach texture to framebuffer color buffer
-					glFramebufferTexture2DEXT(	GL_FRAMEBUFFER_EXT, 
-												GL_COLOR_ATTACHMENT0_EXT, 
+					glFramebufferTexture2D(	GL_DRAW_FRAMEBUFFER, 
+												GL_COLOR_ATTACHMENT0, 
 												_textureTarget,
 												_colorAttachmentID[0], 
 												0);
@@ -408,57 +412,57 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 									_colorType, 
 									NULL);
 
-					GLint colorAttachmentMacro=GL_COLOR_ATTACHMENT0_EXT;
+					GLint colorAttachmentMacro=GL_COLOR_ATTACHMENT0;
 					switch(i) {
 						case 1:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT1_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT1;
 							break;
 						case 2:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT2_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT2;
 							break;
 						case 3:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT3_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT3;
 							break;
 						case 4:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT4_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT4;
 							break;
 						case 5:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT5_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT5;
 							break;
 						case 6:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT6_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT6;
 							break;
 						case 7:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT7_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT7;
 							break;
 						case 8:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT8_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT8;
 							break;
 						case 9:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT9_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT9;
 							break;
 						case 10:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT10_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT10;
 							break;
 						case 11:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT11_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT11;
 							break;
 						case 12:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT12_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT12;
 							break;
 						case 13:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT13_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT13;
 							break;
 						case 14:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT14_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT14;
 							break;
 						case 15:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT15_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT15;
 							break;
 					}
 
 					// attach texture to framebuffer color buffer
-					glFramebufferTexture2DEXT(	GL_FRAMEBUFFER_EXT, 
+					glFramebufferTexture2D(	GL_DRAW_FRAMEBUFFER, 
 												colorAttachmentMacro, 
 												_textureTarget,
 												_colorAttachmentID[i], 
@@ -483,68 +487,68 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 
 				for(int i=0; i<_numColorAttachments; i++) {
 
-					glGenRenderbuffersEXT(1, &_colorAttachmentID[i]);
+					glGenRenderbuffers(1, &_colorAttachmentID[i]);
 
 					// initialize color renderbuffer
-					glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _colorAttachmentID[i]);
-					glRenderbufferStorageEXT(	GL_RENDERBUFFER_EXT, 
+					glBindRenderbuffer(GL_RENDERBUFFER, _colorAttachmentID[i]);
+					glRenderbufferStorage(	GL_RENDERBUFFER, 
 												_internalColorFormat,
 												_width, 
 												_height);
 
-					GLint colorAttachmentMacro=GL_COLOR_ATTACHMENT0_EXT;
+					GLint colorAttachmentMacro=GL_COLOR_ATTACHMENT0;
 					switch(i) {
 						case 1:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT1_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT1;
 							break;
 						case 2:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT2_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT2;
 							break;
 						case 3:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT3_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT3;
 							break;
 						case 4:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT4_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT4;
 							break;
 						case 5:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT5_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT5;
 							break;
 						case 6:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT6_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT6;
 							break;
 						case 7:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT7_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT7;
 							break;
 						case 8:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT8_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT8;
 							break;
 						case 9:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT9_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT9;
 							break;
 						case 10:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT10_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT10;
 							break;
 						case 11:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT11_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT11;
 							break;
 						case 12:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT12_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT12;
 							break;
 						case 13:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT13_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT13;
 							break;
 						case 14:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT14_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT14;
 							break;
 						case 15:
-							colorAttachmentMacro=GL_COLOR_ATTACHMENT15_EXT;
+							colorAttachmentMacro=GL_COLOR_ATTACHMENT15;
 							break;
 					}
 
 					// attach renderbuffer to framebuffer color buffer
-					glFramebufferRenderbufferEXT(	GL_FRAMEBUFFER_EXT,
+					glFramebufferRenderbuffer(	GL_DRAW_FRAMEBUFFER,
 													colorAttachmentMacro,
-													GL_RENDERBUFFER_EXT,
+													GL_RENDERBUFFER,
 													_colorAttachmentID[i] );
 
 				}
@@ -568,9 +572,9 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 			if(_bStencilAttachment) {
 				
 				if(_internalDepthFormat != GL_DEPTH_COMPONENT24)
-					cout << "WARNING: reset internal depth attachment format to 24 Bit [GL_DEPTH_STENCIL_EXT], otherwise stencil attachment won't work!" << endl;
+					cout << "WARNING: reset internal depth attachment format to 24 Bit [GL_DEPTH_STENCIL], otherwise stencil attachment won't work!" << endl;
 
-				_internalDepthFormat	= GL_DEPTH_STENCIL_EXT;
+				_internalDepthFormat	= GL_DEPTH_STENCIL;
 			}
 
 			if(_bDepthAttachmentRenderTexture) {
@@ -596,8 +600,8 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 								NULL);
 			
 				// attach texture to framebuffer color buffer
-				glFramebufferTexture2DEXT(	GL_FRAMEBUFFER_EXT, 
-											GL_DEPTH_ATTACHMENT_EXT, 
+				glFramebufferTexture2D(	GL_DRAW_FRAMEBUFFER, 
+											GL_DEPTH_ATTACHMENT, 
 											_textureTarget,
 											_depthAttachmentID, 0);
 
@@ -606,19 +610,19 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 
 			} else {				
 
-				glGenRenderbuffersEXT(1, &_depthAttachmentID);
+				glGenRenderbuffers(1, &_depthAttachmentID);
 
 				// initialize depth renderbuffer
-				glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _depthAttachmentID);
-				glRenderbufferStorageEXT(	GL_RENDERBUFFER_EXT, 
+				glBindRenderbuffer(GL_RENDERBUFFER, _depthAttachmentID);
+				glRenderbufferStorage(	GL_RENDERBUFFER, 
 											_internalDepthFormat,
 											_width, 
 											_height);
 
 				// attach renderbuffer to framebuffer depth buffer
-				glFramebufferRenderbufferEXT(	GL_FRAMEBUFFER_EXT,
-												GL_DEPTH_ATTACHMENT_EXT,
-												GL_RENDERBUFFER_EXT,
+				glFramebufferRenderbuffer(	GL_DRAW_FRAMEBUFFER,
+												GL_DEPTH_ATTACHMENT,
+												GL_RENDERBUFFER,
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus())
@@ -659,10 +663,13 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 								_depthFormat, 
 								_depthType, 
 								NULL);
-			
+
 				// attach texture to framebuffer color buffer
-				glFramebufferTexture2DEXT(	GL_FRAMEBUFFER_EXT, 
-											GL_STENCIL_ATTACHMENT_EXT, 
+        // FIXME: This fails with the following on ubuntu 12.04, Ivy Bridge HD4000:
+        //   FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT
+        //   realtime_urdf_filter: main/fbobject.c:1915: reuse_framebuffer_texture_attachment: Assertion `src_att->Renderbuffer != ((void *)0)' failed.
+				glFramebufferTexture2D(	GL_DRAW_FRAMEBUFFER, 
+											GL_STENCIL_ATTACHMENT, 
 											_textureTarget,
 											_depthAttachmentID, 0);
 
@@ -672,16 +679,16 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 			} else {
 
 				// initialize depth renderbuffer
-				glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _depthAttachmentID);
-				glRenderbufferStorageEXT(	GL_RENDERBUFFER_EXT, 
+				glBindRenderbuffer(GL_RENDERBUFFER, _depthAttachmentID);
+				glRenderbufferStorage(	GL_RENDERBUFFER, 
 											_internalDepthFormat,
 											_width, 
 											_height);
 
 				// attach renderbuffer to framebuffer depth buffer
-				glFramebufferRenderbufferEXT(	GL_FRAMEBUFFER_EXT,
-												GL_STENCIL_ATTACHMENT_EXT,
-												GL_RENDERBUFFER_EXT,
+				glFramebufferRenderbuffer(	GL_DRAW_FRAMEBUFFER,
+												GL_STENCIL_ATTACHMENT,
+												GL_RENDERBUFFER,
 												_depthAttachmentID );
 
 				if(!checkFramebufferStatus()) {
@@ -698,7 +705,7 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
 		//---------------------------------------------------------------------
 		
 		// disable framebuffer again!
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		glPopAttrib();
 
@@ -722,20 +729,20 @@ FramebufferObject::reInitialize(	unsigned int width, unsigned int height, const 
 	// ---------------------------------------------------------
 	// delete old configuration
 
-	glDeleteFramebuffersEXT(1, &_frameBufferID);
+	glDeleteFramebuffers(1, &_frameBufferID);
 
 	if(_bColorAttachment) {
 		if(_bColorAttachmentRenderTexture) 
 			glDeleteTextures(1, &_colorAttachmentID[0]);
 		else 
-			glDeleteRenderbuffersEXT(1, &_colorAttachmentID[0]);
+			glDeleteRenderbuffers(1, &_colorAttachmentID[0]);
 	}
 
 	if(_bDepthAttachment) {
 		if(_bDepthAttachmentRenderTexture) 
 			glDeleteTextures(1, &_depthAttachmentID);
 		else
-			glDeleteRenderbuffersEXT(1, &_depthAttachmentID);
+			glDeleteRenderbuffers(1, &_depthAttachmentID);
 	}
 
 	// ---------------------------------------------------------
@@ -756,7 +763,7 @@ FramebufferObject::beginCapture(bool bEnablePassThroughShader) {
 	glViewport(0, 0, _width, _height);
 	
 	if(_bInitialized)
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _frameBufferID);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _frameBufferID);
 	
 	if(_bFloatColorBuffer && bEnablePassThroughShader) {
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, _passThroughProgram);
@@ -772,7 +779,7 @@ FramebufferObject::endCapture(bool bDisablePassThroughShader) {
 	glViewport(_viewport[0], _viewport[1], _viewport[2], _viewport[3]);
 	
 	if(_bInitialized)
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	if(_bFloatColorBuffer && bDisablePassThroughShader) 
 		glDisable(GL_FRAGMENT_PROGRAM_ARB);
@@ -1018,16 +1025,16 @@ FramebufferObject::parseModeString(const char *modeString) {
 
 /*			if( kv.second.find("16") != kv.second.npos ) {
 				_stencilDepth	= 16;
-				_internalStencilFormat = GL_STENCIL_INDEX16_EXT;
+				_internalStencilFormat = GL_STENCIL_INDEX16;
 			} else if( kv.second.find("8") != kv.second.npos ) {
 				_stencilDepth	= 8;
-				_internalStencilFormat = GL_STENCIL_INDEX8_EXT;
+				_internalStencilFormat = GL_STENCIL_INDEX8;
 			}	else if( kv.second.find("4") != kv.second.npos ) {
 				_stencilDepth	= 4;
-				_internalStencilFormat = GL_STENCIL_INDEX4_EXT;
+				_internalStencilFormat = GL_STENCIL_INDEX4;
 			} else if( kv.second.find("1") != kv.second.npos ) {
 				_stencilDepth	= 1;
-				_internalStencilFormat = GL_STENCIL_INDEX1_EXT;
+				_internalStencilFormat = GL_STENCIL_INDEX1;
 			}	*/		
 		}
 
@@ -1055,9 +1062,9 @@ FramebufferObject::getKeyValuePair(string token) {
 bool 
 FramebufferObject::checkFramebufferStatus(void) {
 	
-	_framebufferStatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+	_framebufferStatus = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 	
-	if(_framebufferStatus == GL_FRAMEBUFFER_COMPLETE_EXT)
+	if(_framebufferStatus == GL_FRAMEBUFFER_COMPLETE)
 		return true;
 	else
 		return false;
@@ -1070,48 +1077,48 @@ FramebufferObject::printFramebufferStatus(void) {
 
 	switch(_framebufferStatus) {
 
-		case GL_FRAMEBUFFER_COMPLETE_EXT:
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_COMPLETE_EXT" << endl;
+		case GL_FRAMEBUFFER_COMPLETE:
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_COMPLETE" << endl;
 			break;
 
-		case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_UNSUPPORTED_EXT" << endl;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_UNSUPPORTED" << endl;
 			break;
 
-		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << endl;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: 
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT" << endl;
 			break; 
 
-		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << endl;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: 
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT" << endl;
 			break; 
 
 		case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT: 
 			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << endl;
 			break; 
 
-//		case GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT_EXT: 
-//			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT_EXT" << endl;
+//		case GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT: 
+//			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT" << endl;
 //			break; 
 
 		case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT: 
 			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << endl;
 			break; 
 
-		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT" << endl;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: 
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER" << endl;
 			break; 
 
-		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT" << endl;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: 
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER" << endl;
 			break; 
 
-		case GL_FRAMEBUFFER_BINDING_EXT: 
-			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_BINDING_EXT" << endl;
+		case GL_FRAMEBUFFER_BINDING: 
+			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_BINDING" << endl;
 			break; 
 
-//		case GL_FRAMEBUFFER_STATUS_ERROR_EXT: 
-//			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_STATUS_ERROR_EXT" << endl;
+//		case GL_FRAMEBUFFER_STATUS_ERROR: 
+//			cout << "FramebufferObject ERROR: GL_FRAMEBUFFER_STATUS_ERROR" << endl;
 //			break; 
 
 		default: 

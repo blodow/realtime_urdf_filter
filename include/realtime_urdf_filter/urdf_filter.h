@@ -69,8 +69,7 @@ class RealtimeURDFFilter
 
     // does virtual rendering and filtering based on depth buffer and opengl proj. matrix
     void filter (
-        unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp,
-        const sensor_msgs::CameraInfo::ConstPtr& camera_info);
+        unsigned char* buffer, double* glTf, int width, int height);
 
     // copy cv::Mat1f to char buffer
     unsigned char* bufferFromDepthImage (cv::Mat1f depth_image);

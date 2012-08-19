@@ -176,8 +176,7 @@ double RealtimeURDFFilter::getTime ()
 }
 
 void RealtimeURDFFilter::filter (
-    unsigned char* buffer, double* glTf, int width, int height, ros::Time timestamp,
-    const sensor_msgs::CameraInfo::ConstPtr& camera_info)
+    unsigned char* buffer, double* glTf, int width, int height)
 {
   if (width_ != width || height_ != height)
   {
@@ -216,30 +215,6 @@ void RealtimeURDFFilter::filter (
 
   // render everything
   render (glTf);
-
-  // publish processed depth image and image mask
-  if (depth_pub_.getNumSubscribers() > 0)
-  {
-    cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
-    cv_bridge::CvImage out_masked_depth;
-    out_masked_depth.header.frame_id = cam_frame_;
-    out_masked_depth.header.stamp = timestamp;
-    out_masked_depth.encoding = "32FC1";
-    out_masked_depth.image = masked_depth_image;
-    depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
-  }
-
-  if (mask_pub_.getNumSubscribers() > 0)
-  {
-    cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
-
-    cv_bridge::CvImage out_mask;
-    out_mask.header.frame_id = cam_frame_;
-    out_mask.header.stamp = timestamp;
-    out_mask.encoding = "mono8";
-    out_mask.image = mask_image;
-    mask_pub_.publish (out_mask.toImageMsg (), camera_info);
-  }
 }
 
 // callback function that gets ROS images and does everything
@@ -251,7 +226,7 @@ void RealtimeURDFFilter::filter_callback
   cv_bridge::CvImageConstPtr orig_depth_img;
   try
   {
-    orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_32FC1);
+    orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
   }
   catch (cv_bridge::Exception& e)
   {
@@ -269,7 +244,32 @@ void RealtimeURDFFilter::filter_callback
     return;
   }
 
-  filter (buffer, glTf, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp, camera_info);
+  // Filter the image
+  this->filter(buffer, glTf, depth_image.cols, depth_image.rows);
+
+  // publish processed depth image and image mask
+  if (depth_pub_.getNumSubscribers() > 0)
+  {
+    cv::Mat masked_depth_image (height_, width_, CV_16UC1, masked_depth_);
+    cv_bridge::CvImage out_masked_depth;
+    out_masked_depth.header.frame_id = cam_frame_;
+    out_masked_depth.header.stamp = ros_depth_image->header.stamp;
+    out_masked_depth.encoding = "16UC1";
+    out_masked_depth.image = masked_depth_image;
+    depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
+  }
+
+  if (mask_pub_.getNumSubscribers() > 0)
+  {
+    cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
+
+    cv_bridge::CvImage out_mask;
+    out_mask.header.frame_id = cam_frame_;
+    out_mask.header.stamp = ros_depth_image->header.stamp;
+    out_mask.encoding = "mono8";
+    out_mask.image = mask_image;
+    mask_pub_.publish (out_mask.toImageMsg (), camera_info);
+  }
 }
 
 void RealtimeURDFFilter::textureBufferFromDepthBuffer (unsigned char* buffer, int size_in_bytes)
@@ -437,10 +437,10 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     return;
 
   static const GLenum buffers[] = {
-    GL_COLOR_ATTACHMENT0_EXT,
-    GL_COLOR_ATTACHMENT1_EXT,
-    GL_COLOR_ATTACHMENT2_EXT,
-    GL_COLOR_ATTACHMENT3_EXT
+    GL_COLOR_ATTACHMENT0,
+    GL_COLOR_ATTACHMENT1,
+    GL_COLOR_ATTACHMENT2,
+    GL_COLOR_ATTACHMENT3
   };
 
   // get transformation from camera to "fixed frame"
@@ -556,7 +556,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glPushAttrib(GL_ALL_ATTRIB_BITS);
 
     fbo_->beginCapture();
-    glDrawBuffer(GL_COLOR_ATTACHMENT3_EXT);
+    glDrawBuffer(GL_COLOR_ATTACHMENT3);
 
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_EQUAL, 0x1, 0x1);
