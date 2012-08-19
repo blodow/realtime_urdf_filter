@@ -578,8 +578,8 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
       if(_internalDepthFormat != GL_DEPTH_COMPONENT24)
         cout << "WARNING: reset internal depth attachment format to 24 Bit [GL_DEPTH_STENCIL], otherwise stencil attachment won't work!" << endl;
 
-      std::cout<<"Using GL_DEPTH_STENCIL for _internalDepthFormat."<<std::endl;
-      _internalDepthFormat	= GL_DEPTH_STENCIL;
+      std::cout<<"Using GL_DEPTH_COMPONENT24 for _internalDepthFormat."<<std::endl;
+      _internalDepthFormat	= GL_DEPTH_COMPONENT24;
     }
 
     if(_bDepthAttachmentRenderTexture) {
