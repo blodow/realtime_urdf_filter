@@ -275,6 +275,9 @@ FramebufferObject::initialize(	unsigned int width, unsigned int height ) {
   if(!GLEW_ARB_framebuffer_object)
     cout << "ERROR: FramebufferObject - GL_ARB_framebuffer_object not supported!" << endl;
 
+  if(!GLEW_ARB_texture_non_power_of_two)
+    cout << "ERROR: FramebufferObject - GL_ARB_texture_non_power_of_two not supported!" << endl;
+
 
   //---------------------------------------------------------------------
   //	create pass-throug programs
