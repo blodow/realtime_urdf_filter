@@ -436,8 +436,8 @@ void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int
   // check if we already have a PBO and Texture Buffer
   if (depth_image_pbo_ == GL_INVALID_VALUE) {
     ROS_INFO("Generating pBuffer Object...");
-    glGenBuffers (1, &depth_image_pbo_);
-    glGenTextures (1, &depth_texture_);
+    glGenBuffers(1, &depth_image_pbo_);
+    glGenTextures(1, &depth_texture_);
   }
 
   glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);

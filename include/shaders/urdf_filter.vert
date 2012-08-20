@@ -1,3 +1,4 @@
+#version 140
 in vec3 vertex;
 varying out vec3 normal;
 
