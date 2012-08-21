@@ -1,5 +1,3 @@
-WARNING: This fork is currently not in operational condition. - 8-19-2012
-
 realtime_urdf_filter
 ====================
 
@@ -13,6 +11,18 @@ Incoming Kinect frames are transferred to the GPU as textures, and the scene is
 rendered from the same point of view. As a result, we can access the measured
 as well as the virtual depth map in the shader, where we can define efficient
 comparision operations.
+
+Dependencies
+------------
+
+This package requires the following:
+ - GLSL (GL Shader Language) version 1.40 support or greater
+ - GLEW (GL Extension Wrangler) version 1.6
+
+NOTE: Trying to use thie package with GLEW 1.5 wil result in a segmentation fault.
+
+ROS Interface
+-------------
 
 There are two ROS nodes that can be used out of the box:
 
