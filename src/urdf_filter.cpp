@@ -34,8 +34,6 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
-#define USE_FBO_CLASS
-
 //#define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
@@ -206,11 +204,11 @@ void RealtimeURDFFilter::filter_callback
   // publish processed depth image and image mask
   if (depth_pub_.getNumSubscribers() > 0)
   {
-    cv::Mat masked_depth_image (height_, width_, CV_16UC1, masked_depth_);
+    cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
     cv_bridge::CvImage out_masked_depth;
     out_masked_depth.header.frame_id = cam_frame_;
     out_masked_depth.header.stamp = ros_depth_image->header.stamp;
-    out_masked_depth.encoding = "16UC1";
+    out_masked_depth.encoding = "32FC1";
     out_masked_depth.image = masked_depth_image;
     depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
   }
@@ -413,11 +411,8 @@ void RealtimeURDFFilter::initGL ()
 void RealtimeURDFFilter::initFrameBufferObject ()
 {
 
-#ifdef USE_FBO_CLASS
   fbo_ = new FramebufferObject("rgba=4x32t depth=24t stencil=8t");
   fbo_->initialize(width_, height_);
-#else
-#endif
 
   fbo_initialized_ = true;
 
@@ -490,12 +485,8 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glEnable(GL_NORMALIZE);
 
-#ifdef USE_FBO_CLASS
   // Render into FBO
   fbo_->beginCapture();
-#else
-
-#endif
 
   // Create shader programs
   static ShaderWrapper shader = ShaderWrapper::fromFiles(
@@ -522,10 +513,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
-#ifdef USE_FBO_CLASS
   fbo_->disableTextureTarget();
-#else
-#endif
 
   // Setup camera projection
   glMatrixMode (GL_PROJECTION);
@@ -587,91 +575,75 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   // Disable shader
   glUseProgram((GLuint)NULL);
   
-#ifdef USE_FBO_CLASS
   fbo_->endCapture();
-#else
-#endif
   glPopAttrib();
 
   // Use stencil buffer to draw a red / blue mask into color attachment 3
   if (need_mask_ || show_gui_) {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-#ifdef USE_FBO_CLASS
     fbo_->beginCapture();
-#else
-#endif
-    glDrawBuffer(GL_COLOR_ATTACHMENT3);
+      glDrawBuffer(GL_COLOR_ATTACHMENT3);
 
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_EQUAL, 0x1, 0x1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+      glEnable(GL_STENCIL_TEST);
+      glStencilFunc(GL_EQUAL, 0x1, 0x1);
+      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-#ifdef USE_FBO_CLASS
-    fbo_->disableTextureTarget();
-#else
-#endif
+      glDisable(GL_DEPTH_TEST);
+      glDisable(GL_TEXTURE_2D);
+      fbo_->disableTextureTarget();
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-      glLoadIdentity();
-      gluOrtho2D(0.0, 1.0, 0.0, 1.0);
-
-      glMatrixMode(GL_MODELVIEW);	
+      glMatrixMode(GL_PROJECTION);
       glPushMatrix();
         glLoadIdentity();
+        gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-        glColor3f(1.0, 0.0, 0.0);
+        glMatrixMode(GL_MODELVIEW);	
+        glPushMatrix();
+          glLoadIdentity();
 
-        glBegin(GL_QUADS);
-          glVertex2f(0.0, 0.0);
-          glVertex2f(1.0, 0.0);
-          glVertex2f(1.0, 1.0);
-          glVertex2f(0.0, 1.0);
-        glEnd();
+          glColor3f(1.0, 0.0, 0.0);
 
+          glBegin(GL_QUADS);
+            glVertex2f(0.0, 0.0);
+            glVertex2f(1.0, 0.0);
+            glVertex2f(1.0, 1.0);
+            glVertex2f(0.0, 1.0);
+          glEnd();
+
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
       glPopMatrix();
+
+      glStencilFunc(GL_EQUAL, 0x0, 0x1);
+      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+      glDisable(GL_DEPTH_TEST);
+      glDisable(GL_TEXTURE_2D);
+      fbo_->disableTextureTarget();
+
       glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-
-    glStencilFunc(GL_EQUAL, 0x0, 0x1);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-#ifdef USE_FBO_CLASS
-    fbo_->disableTextureTarget();
-#else
-#endif
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-      glLoadIdentity();
-      gluOrtho2D(0.0, 1.0, 0.0, 1.0);
-
-      glMatrixMode(GL_MODELVIEW);	
       glPushMatrix();
         glLoadIdentity();
+        gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 
-        glColor3f(0.0, 0.0, 1.0);
+        glMatrixMode(GL_MODELVIEW);	
+        glPushMatrix();
+          glLoadIdentity();
 
-        glBegin(GL_QUADS);
-          glVertex2f(0.0, 0.0);
-          glVertex2f(1.0, 0.0);
-          glVertex2f(1.0, 1.0);
-          glVertex2f(0.0, 1.0);
-        glEnd();
+          glColor3f(0.0, 0.0, 1.0);
 
+          glBegin(GL_QUADS);
+            glVertex2f(0.0, 0.0);
+            glVertex2f(1.0, 0.0);
+            glVertex2f(1.0, 1.0);
+            glVertex2f(0.0, 1.0);
+          glEnd();
+
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
       glPopMatrix();
-      glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    
-#ifdef USE_FBO_CLASS
     fbo_->endCapture();
-#else
-#endif
 
     glPopAttrib();
   }
@@ -690,10 +662,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         glLoadIdentity();
 
         // draw color buffer 0
-#ifdef USE_FBO_CLASS
         fbo_->bind(0);
-#else
-#endif
         glBegin(GL_QUADS);
           glTexCoord2f(0.0, height_);
           glVertex2f(0.0, 0.5);
@@ -706,10 +675,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         glEnd();
 
         // draw color buffer 1
-#ifdef USE_FBO_CLASS
         fbo_->bind(1);
-#else
-#endif
         glBegin(GL_QUADS);
           glTexCoord2f(0.0, height_);
           glVertex2f(0.0, 0.0);
@@ -722,10 +688,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         glEnd();
 
         // draw color buffer 2
-#ifdef USE_FBO_CLASS
         fbo_->bind(2);
-#else
-#endif
         glBegin(GL_QUADS);
           glTexCoord2f(0.0, height_);
           glVertex2f(0.333, 0.5);
@@ -738,10 +701,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         glEnd();
 
         // draw color buffer 3
-#ifdef USE_FBO_CLASS
         fbo_->bind(3);
-#else
-#endif
         glBegin(GL_QUADS);
           glTexCoord2f(0.0, height_);
           glVertex2f(0.333, 0.0);
@@ -754,10 +714,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         glEnd();
 
         // draw depth buffer 
-#ifdef USE_FBO_CLASS
         fbo_->bindDepth();
-#else
-#endif
         glBegin(GL_QUADS);
           glTexCoord2f(0.0, height_);
           glVertex2f(0.666, 0.5);
@@ -774,7 +731,6 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glPopMatrix();
   } 
 
-#ifdef USE_FBO_CLASS
   fbo_->bind(1);
   glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_FLOAT, masked_depth_);
   if (need_mask_)
@@ -782,8 +738,6 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     fbo_->bind(3);
     glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_UNSIGNED_BYTE, mask_);
   }
-#else
-#endif
 
   // Ok, finished with all OpenGL, let's swap!
   if (show_gui_) {

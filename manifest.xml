@@ -19,7 +19,8 @@
   <depend package="nodelet" />
   <depend package="image_transport" />
 
-  <rosdep name="libglew-dev"/>
+  <rosdep name="libglew1.6"/>
+  <rosdep name="libglew1.6-dev"/>
 
   <export>
     <cpp cflags="-I${prefix}/include" />
