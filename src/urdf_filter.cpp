@@ -181,6 +181,9 @@ void RealtimeURDFFilter::filter_callback
      (const sensor_msgs::ImageConstPtr& ros_depth_image,
       const sensor_msgs::CameraInfo::ConstPtr& camera_info)
 {
+  // Debugging
+  ROS_DEBUG_STREAM("Received image with camera info: "<<*camera_info);
+
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
   try {
@@ -265,8 +268,9 @@ void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::Con
 
 #endif
 
-  for (unsigned int i = 0; i < 16; ++i)
+  for (unsigned int i = 0; i < 16; ++i) {
     glTf[i] = 0.0;
+  }
 
   // calculate the projection matrix
   // NOTE: this minus is there to flip the x-axis of the image.
