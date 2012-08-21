@@ -46,6 +46,7 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   , image_transport_(nh)
   , fbo_initialized_(false)
   , depth_image_pbo_ (GL_INVALID_VALUE)
+  , depth_texture_(GL_INVALID_VALUE)
   , width_(0)
   , height_(0)
   , far_plane_ (8)
@@ -432,20 +433,24 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 }
 
 void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int size_in_bytes)
-{
-  // check if we already have a PBO and Texture Buffer
+{    
+  GLenum err;
+  ROS_DEBUG("Texture buffer from depth buffer...");
+  // check if we already have a PBO 
   if (depth_image_pbo_ == GL_INVALID_VALUE) {
-    ROS_INFO("Generating pBuffer Object...");
+    ROS_DEBUG("Generating Pixel Buffer Object...");
     glGenBuffers(1, &depth_image_pbo_);
-    glGenTextures(1, &depth_texture_);
   }
-
-  glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);
-
   // upload buffer data to GPU
+  glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);
   glBufferData(GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+  // Check if we already have a texture buffer
+  if (depth_texture_ == GL_INVALID_VALUE) {
+    ROS_DEBUG("Generating Texture Object...");
+    glGenTextures(1, &depth_texture_);
+  }
   // assign PBO to Texture Buffer
   glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
   glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);

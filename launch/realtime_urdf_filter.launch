@@ -18,5 +18,12 @@
 
     <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
   </node>                 
+
+  <!-- Load an example URDF -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find realtime_urdf_filter)/urdf/example.urdf.xml'"/>
+
+  <node name="robot_state_publisher_$(arg RCU_ID)" pkg="robot_state_publisher" type="state_publisher">
+    <param name="tf_prefix" value="EXAMPLE"/>
+  </node>
 </launch>
 

@@ -1,5 +1,5 @@
-<robot name="saphari_workspace">
-    <link name="floor"/>
+<robot name="example">
+    <link name="world"/>
     <link name="wall1"> 
         <visual>
             <geometry>
@@ -27,12 +27,12 @@
 
     <joint name="wall1_joint" type="fixed" >
         <origin xyz="0 5 0" rpy="0 0 0.785398163"/>
-        <parent link="floor"/>
+        <parent link="world"/>
         <child link="wall1"/>
     </joint>
     <joint name="wall2_joint" type="fixed" >
         <origin xyz="0 5 0" rpy="0 0 -0.785398163"/>
-        <parent link="floor"/>
+        <parent link="world"/>
         <child link="wall2"/>
     </joint>
 </robot>
