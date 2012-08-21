@@ -370,7 +370,7 @@ void RealtimeURDFFilter::initGL ()
     glutInit (&argc_, argv_);
 
     //TODO: change this to use an offscreen pbuffer, so no window is necessary,
-    //for now, we can just hid it (see below)
+    //for now, we can just hide it (see below)
     
     // The debug window shows a 3x2 grid of images
     glutInitWindowSize (960, 480);
@@ -422,12 +422,12 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 
   GLenum err = glGetError();
   if(err != GL_NO_ERROR) {
-    printf("OpenGL ERROR after FBO initialization: %s\n", gluErrorString(err));
+    ROS_ERROR("OpenGL ERROR after FBO initialization: %s", gluErrorString(err));
   }
 
   GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
   if(status != GL_FRAMEBUFFER_COMPLETE) {
-    printf("OpenGL FrameBuffer ERROR after FBO initialization: %i\n", status);
+    ROS_ERROR("OpenGL FrameBuffer ERROR after FBO initialization: %i", status);
   }
 }
 
@@ -482,7 +482,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
   err = glGetError();
   if(err != GL_NO_ERROR) {
-    ROS_ERROR("OpenGL ERROR at beginning of rendering: %s\n", gluErrorString(err));
+    ROS_ERROR("OpenGL ERROR at beginning of rendering: %s", gluErrorString(err));
     return;
   }
 
@@ -499,7 +499,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
 
   err = glGetError();
   if(err != GL_NO_ERROR) {
-    ROS_ERROR("OpenGL ERROR compiling shaders: %s\n", gluErrorString(err));
+    ROS_ERROR("OpenGL ERROR compiling shaders: %s", gluErrorString(err));
     return;
   }
   
