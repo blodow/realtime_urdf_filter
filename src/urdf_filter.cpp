@@ -198,11 +198,11 @@ void RealtimeURDFFilter::filter_callback
   unsigned char *buffer = bufferFromDepthImage(depth_image);
 
   // Compute the projection matrix from the camera_info 
-  double glTf[16];
-  getProjectionMatrix (camera_info, glTf);
+  double projection_matrix[16];
+  getProjectionMatrix (camera_info, projection_matrix);
 
   // Filter the image
-  this->filter(buffer, glTf, depth_image.cols, depth_image.rows);
+  this->filter(buffer, projection_matrix, depth_image.cols, depth_image.rows);
 
   // publish processed depth image and image mask
   if (depth_pub_.getNumSubscribers() > 0)
@@ -317,7 +317,7 @@ unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
 }
 
 void RealtimeURDFFilter::filter (
-    unsigned char* buffer, double* glTf, int width, int height)
+    unsigned char* buffer, double* projection_matrix, int width, int height)
 {
   if (width_ != width || height_ != height) {
     if(width_ !=0 || height_!=0) {
@@ -355,7 +355,7 @@ void RealtimeURDFFilter::filter (
   textureBufferFromDepthBuffer(buffer, size_in_bytes);
 
   // render everything
-  this->render(glTf);
+  this->render(projection_matrix);
 }
 
 // set up OpenGL stuff
@@ -472,9 +472,10 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   }
 
   // get transformation from camera to "fixed frame"
-  tf::StampedTransform t;
+  tf::StampedTransform camera_transform;
   try {
-    tf_.lookupTransform (cam_frame_, fixed_frame_, ros::Time (), t);
+    tf_.lookupTransform (cam_frame_, fixed_frame_, ros::Time (), camera_transform);
+    ROS_DEBUG_STREAM("Camera to world transform: "<<camera_transform.getOrigin());
   } catch (tf::TransformException ex) {
     ROS_ERROR("%s",ex.what());
     return;
@@ -549,7 +550,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glMultMatrixd((GLdouble*)glTf);
 
   // Apply camera to "fixed frame" transform (world coordinates)
-  t.getOpenGLMatrix(glTf);
+  camera_transform.getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
   
   // Set up stencil buffer etc.
