@@ -209,8 +209,9 @@ void RealtimeURDFFilter::filter_callback
   {
     cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
     cv_bridge::CvImage out_masked_depth;
-    out_masked_depth.header.frame_id = cam_frame_;
-    out_masked_depth.header.stamp = ros_depth_image->header.stamp;
+    //out_masked_depth.header.frame_id = cam_frame_;
+    //out_masked_depth.header.stamp = ros_depth_image->header.stamp;
+    out_masked_depth.header = ros_depth_image->header;
     out_masked_depth.encoding = "32FC1";
     out_masked_depth.image = masked_depth_image;
     depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
@@ -433,7 +434,6 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 
 void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int size_in_bytes)
 {    
-  GLenum err;
   ROS_DEBUG("Texture buffer from depth buffer...");
   // check if we already have a PBO 
   if (depth_image_pbo_ == GL_INVALID_VALUE) {
@@ -475,7 +475,14 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   tf::StampedTransform camera_transform;
   try {
     tf_.lookupTransform (cam_frame_, fixed_frame_, ros::Time (), camera_transform);
-    ROS_DEBUG_STREAM("Camera to world transform: "<<camera_transform.getOrigin());
+    ROS_DEBUG_STREAM("Camera to world translation "<<
+        cam_frame_<<" -> "<<fixed_frame_<<
+        " ["<<
+        " "<<camera_transform.getOrigin().x()<<
+        " "<<camera_transform.getOrigin().y()<<
+        " "<<camera_transform.getOrigin().z()<<
+        "]"
+        );
   } catch (tf::TransformException ex) {
     ROS_ERROR("%s",ex.what());
     return;
@@ -537,10 +544,10 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   // Draw background quad behind everything (just before the far plane)
   // Otherwise, the shader only sees kinect points where he rendered stuff
   glBegin(GL_QUADS);
-    glVertex3f(-10.0, -10.0, far_plane_*0.99);
-    glVertex3f( 10.0, -10.0, far_plane_*0.99);
-    glVertex3f( 10.0,  10.0, far_plane_*0.99);
-    glVertex3f(-10.0,  10.0, far_plane_*0.99);
+    glVertex3f(-100.0, -100.0, far_plane_*0.99);
+    glVertex3f( 100.0, -100.0, far_plane_*0.99);
+    glVertex3f( 100.0,  100.0, far_plane_*0.99);
+    glVertex3f(-100.0,  100.0, far_plane_*0.99);
   glEnd();
  
   // Apply user-defined camera offset transformation (launch file)
