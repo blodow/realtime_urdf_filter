@@ -218,7 +218,6 @@ void RealtimeURDFFilter::filter (
   this->render(projection_matrix);
 }
 
-
 // callback function that gets ROS images and does everything
 void RealtimeURDFFilter::filter_callback
      (const sensor_msgs::ImageConstPtr& ros_depth_image,
@@ -273,6 +272,29 @@ void RealtimeURDFFilter::filter_callback
   }
 }
 
+void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int size_in_bytes)
+{    
+  ROS_DEBUG("Texture buffer from depth buffer...");
+  // check if we already have a PBO 
+  if (depth_image_pbo_ == GL_INVALID_VALUE) {
+    ROS_DEBUG("Generating Pixel Buffer Object...");
+    glGenBuffers(1, &depth_image_pbo_);
+  }
+  // upload buffer data to GPU
+  glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);
+  glBufferData(GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Check if we already have a texture buffer
+  if (depth_texture_ == GL_INVALID_VALUE) {
+    ROS_DEBUG("Generating Texture Object...");
+    glGenTextures(1, &depth_texture_);
+  }
+  // assign PBO to Texture Buffer
+  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
+  glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
+}
+
 unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
 {
   // Host buffer to hold depth pixel data
@@ -301,6 +323,79 @@ unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
   }
 
   return buffer;
+}
+
+// set up OpenGL stuff
+void RealtimeURDFFilter::initGL ()
+{
+  static bool gl_initialized = false;
+
+  ROS_INFO("Initializing OpenGL subsystem...");
+
+  if (!gl_initialized) {
+    // Initialize GLUT
+    glutInit (&argc_, argv_);
+
+    //TODO: change this to use an offscreen pbuffer, so no window is necessary,
+    //for now, we can just hide it (see below)
+    
+    // The debug window shows a 3x2 grid of images
+    glutInitWindowSize (960, 480);
+    glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
+    glutCreateWindow ("Realtime URDF Filter Debug Window");
+
+    // Hide the GLUT window
+    if (!show_gui_) {
+      glutHideWindow();
+    }
+
+    gl_initialized = true;
+  }
+
+  // initialize OpenGL Extension Wrangler library
+  GLenum err = glewInit();
+  if (GLEW_OK != err) {
+    throw std::runtime_error("ERROR: could not initialize GLEW!");
+  }
+
+  // Set up FBO 
+  // FIXME: Replace this with more robust / specialized FBO
+  this->initFrameBufferObject();
+
+  // Load URDF models + meshes onto GPU
+  this->loadModels();
+
+  // Make sure we loaded something!
+  if(renderers_.empty()) { 
+    throw std::runtime_error("Could not load any models for filtering!");
+  } else {
+    ROS_INFO_STREAM("Loaded "<<renderers_.size()<<" models for filtering.");
+  }
+  
+  // Alocate buffer for the masked depth image (float) 
+  masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
+  // Alocate buffer for the mask (uchar) 
+  mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
+}
+
+// set up FBO
+void RealtimeURDFFilter::initFrameBufferObject ()
+{
+
+  fbo_ = new FramebufferObject("rgba=4x32t depth=24t stencil=8t");
+  fbo_->initialize(width_, height_);
+
+  fbo_initialized_ = true;
+
+  GLenum err = glGetError();
+  if(err != GL_NO_ERROR) {
+    ROS_ERROR("OpenGL ERROR after FBO initialization: %s", gluErrorString(err));
+  }
+
+  GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if(status != GL_FRAMEBUFFER_COMPLETE) {
+    ROS_ERROR("OpenGL FrameBuffer ERROR after FBO initialization: %i", status);
+  }
 }
 
 // compute Projection matrix from CameraInfo message
@@ -665,101 +760,5 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glutMainLoopEvent ();
   }
   // TODO: this necessary? glFlush ();
-}
-
-// set up OpenGL stuff
-void RealtimeURDFFilter::initGL ()
-{
-  static bool gl_initialized = false;
-
-  ROS_INFO("Initializing OpenGL subsystem...");
-
-  if (!gl_initialized) {
-    // Initialize GLUT
-    glutInit (&argc_, argv_);
-
-    //TODO: change this to use an offscreen pbuffer, so no window is necessary,
-    //for now, we can just hide it (see below)
-    
-    // The debug window shows a 3x2 grid of images
-    glutInitWindowSize (960, 480);
-    glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL);
-    glutCreateWindow ("Realtime URDF Filter Debug Window");
-
-    // Hide the GLUT window
-    if (!show_gui_) {
-      glutHideWindow();
-    }
-
-    gl_initialized = true;
-  }
-
-  // initialize OpenGL Extension Wrangler library
-  GLenum err = glewInit();
-  if (GLEW_OK != err) {
-    throw std::runtime_error("ERROR: could not initialize GLEW!");
-  }
-
-  // Set up FBO 
-  // FIXME: Replace this with more robust / specialized FBO
-  this->initFrameBufferObject();
-
-  // Load URDF models + meshes onto GPU
-  this->loadModels();
-
-  // Make sure we loaded something!
-  if(renderers_.empty()) { 
-    throw std::runtime_error("Could not load any models for filtering!");
-  } else {
-    ROS_INFO_STREAM("Loaded "<<renderers_.size()<<" models for filtering.");
-  }
-  
-  // Alocate buffer for the masked depth image (float) 
-  masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
-  // Alocate buffer for the mask (uchar) 
-  mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
-}
-
-// set up FBO
-void RealtimeURDFFilter::initFrameBufferObject ()
-{
-
-  fbo_ = new FramebufferObject("rgba=4x32t depth=24t stencil=8t");
-  fbo_->initialize(width_, height_);
-
-  fbo_initialized_ = true;
-
-  GLenum err = glGetError();
-  if(err != GL_NO_ERROR) {
-    ROS_ERROR("OpenGL ERROR after FBO initialization: %s", gluErrorString(err));
-  }
-
-  GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if(status != GL_FRAMEBUFFER_COMPLETE) {
-    ROS_ERROR("OpenGL FrameBuffer ERROR after FBO initialization: %i", status);
-  }
-}
-
-void RealtimeURDFFilter::textureBufferFromDepthBuffer(unsigned char* buffer, int size_in_bytes)
-{    
-  ROS_DEBUG("Texture buffer from depth buffer...");
-  // check if we already have a PBO 
-  if (depth_image_pbo_ == GL_INVALID_VALUE) {
-    ROS_DEBUG("Generating Pixel Buffer Object...");
-    glGenBuffers(1, &depth_image_pbo_);
-  }
-  // upload buffer data to GPU
-  glBindBuffer(GL_ARRAY_BUFFER, depth_image_pbo_);
-  glBufferData(GL_ARRAY_BUFFER, size_in_bytes, buffer, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  // Check if we already have a texture buffer
-  if (depth_texture_ == GL_INVALID_VALUE) {
-    ROS_DEBUG("Generating Texture Object...");
-    glGenTextures(1, &depth_texture_);
-  }
-  // assign PBO to Texture Buffer
-  glBindTexture(GL_TEXTURE_BUFFER, depth_texture_);
-  glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, depth_image_pbo_);
 }
 
