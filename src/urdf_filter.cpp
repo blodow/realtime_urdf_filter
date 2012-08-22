@@ -34,7 +34,7 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
-//#define USE_OWN_CALIBRATION
+#define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
 
@@ -47,6 +47,8 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   , depth_texture_(GL_INVALID_VALUE)
   , width_(0)
   , height_(0)
+  , camera_tx_(0)
+  , camera_ty_(0)
   , far_plane_ (8)
   , near_plane_ (0.1)
   , argc_ (argc), argv_(argv)
@@ -108,6 +110,7 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   depth_sub_ = image_transport_.subscribeCamera("input_depth", 10,
       &RealtimeURDFFilter::filter_callback, this);
   depth_pub_ = image_transport_.advertiseCamera("output_depth", 10);
+  depth_pub_raw_ = image_transport_.advertiseCamera("output_depth_raw", 10);
   mask_pub_ = image_transport_.advertiseCamera("output_mask", 10);
 }
 
@@ -399,13 +402,9 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 }
 
 // compute Projection matrix from CameraInfo message
-void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::ConstPtr& current_caminfo, btScalar* glTf)
+void RealtimeURDFFilter::getProjectionMatrix (
+    const sensor_msgs::CameraInfo::ConstPtr& info, btScalar* glTf)
 {
-  sensor_msgs::CameraInfo::ConstPtr info = current_caminfo;
-
-  if (!info)
-    return;
-
   tf::Vector3 position;
   tf::Quaternion orientation;
 
@@ -427,13 +426,8 @@ void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::Con
 
   // TODO: check if this does the right thing with respect to registered depth / camera info
   // Add the camera's translation relative to the left camera (from P[3]);
-  //double tx = -1 * (info->P[3] / fx);
-  //tf::Vector3 right = orientation * tf::Vector3 (1,0,0);
-  //position = position + (right * tx);
-
-  //double ty = -1 * (info->P[7] / fy);
-  //tf::Vector3 down = orientation * tf::Vector3 (0,1,0);
-  //position = position + (down * ty);
+  camera_tx_ = -1 * (info->P[3] / fx);
+  camera_ty_ = -1 * (info->P[7] / fy);
 
 #endif
 
@@ -559,6 +553,12 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glMultMatrixd((GLdouble*)glTf);
 
   // Apply camera to "fixed frame" transform (world coordinates)
+  tf::Vector3 right = tf::Transform(camera_transform.getRotation()) * tf::Vector3 (1,0,0);
+  camera_transform.setOrigin(camera_transform.getOrigin() + (right * camera_tx_));
+  tf::Vector3 down = tf::Transform(camera_transform.getRotation()) * tf::Vector3 (0,1,0);
+  camera_transform.setOrigin(camera_transform.getOrigin() + (down * camera_ty_));
+
+
   camera_transform.getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
   

@@ -98,6 +98,7 @@ class RealtimeURDFFilter
     image_transport::ImageTransport image_transport_;
     image_transport::CameraSubscriber depth_sub_;
     image_transport::CameraPublisher depth_pub_;
+    image_transport::CameraPublisher depth_pub_raw_;
     image_transport::CameraPublisher mask_pub_;
 
     // rendering objects
@@ -122,6 +123,10 @@ class RealtimeURDFFilter
     // image size
     GLint width_;
     GLint height_;
+
+    // Camera parameters
+    double camera_tx_;
+    double camera_ty_;
 
     // OpenGL virtual camera setup
     double far_plane_;
