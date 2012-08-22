@@ -176,6 +176,49 @@ double RealtimeURDFFilter::getTime ()
   return (current_time.tv_sec + 1e-6 * current_time.tv_usec);
 }
 
+void RealtimeURDFFilter::filter (
+    unsigned char* buffer, double* projection_matrix, int width, int height)
+{
+  if (width_ != width || height_ != height) {
+    if(width_ !=0 || height_!=0) {
+      ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
+    }
+    width_ = width;
+    height_ = height;
+    this->initGL();
+  }
+  
+  // Load models / construct renderers
+  if(renderers_.empty()) {
+    return;
+  }
+
+  if (mask_pub_.getNumSubscribers() > 0) {
+    need_mask_ = true;
+  } else {
+    need_mask_ = false;
+  }
+
+  // Timing
+  static unsigned count = 0;
+  static double last = getTime ();
+  double now = getTime ();
+
+  if (++count == 30 || (now - last) > 5) {
+    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
+    count = 0;
+    last = now;
+  }
+
+  // get depth_image into OpenGL texture buffer
+  int size_in_bytes = width_ * height_ * sizeof(float);
+  textureBufferFromDepthBuffer(buffer, size_in_bytes);
+
+  // render everything
+  this->render(projection_matrix);
+}
+
+
 // callback function that gets ROS images and does everything
 void RealtimeURDFFilter::filter_callback
      (const sensor_msgs::ImageConstPtr& ros_depth_image,
@@ -622,48 +665,6 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glutMainLoopEvent ();
   }
   // TODO: this necessary? glFlush ();
-}
-
-void RealtimeURDFFilter::filter (
-    unsigned char* buffer, double* projection_matrix, int width, int height)
-{
-  if (width_ != width || height_ != height) {
-    if(width_ !=0 || height_!=0) {
-      ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
-    }
-    width_ = width;
-    height_ = height;
-    this->initGL();
-  }
-  
-  // Load models / construct renderers
-  if(renderers_.empty()) {
-    return;
-  }
-
-  if (mask_pub_.getNumSubscribers() > 0) {
-    need_mask_ = true;
-  } else {
-    need_mask_ = false;
-  }
-
-  // Timing
-  static unsigned count = 0;
-  static double last = getTime ();
-  double now = getTime ();
-
-  if (++count == 30 || (now - last) > 5) {
-    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
-    count = 0;
-    last = now;
-  }
-
-  // get depth_image into OpenGL texture buffer
-  int size_in_bytes = width_ * height_ * sizeof(float);
-  textureBufferFromDepthBuffer(buffer, size_in_bytes);
-
-  // render everything
-  this->render(projection_matrix);
 }
 
 // set up OpenGL stuff
