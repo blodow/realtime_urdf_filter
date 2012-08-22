@@ -230,6 +230,36 @@ void RealtimeURDFFilter::filter_callback
   }
 }
 
+unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
+{
+  // Host buffer to hold depth pixel data
+  static unsigned char* buffer = NULL;
+
+  // Try to get the pixel data from cv::Mat as one continuous buffer
+  if (depth_image.isContinuous()) {
+    buffer = depth_image.data;
+  } else {
+    // Get the size of each row in bytes
+    int row_size = depth_image.cols * depth_image.elemSize();
+
+    // Allocate the buffer
+    if (buffer == NULL) {
+      std::cout << "(re)allocating opengl depth buffer" << std::endl;
+      buffer = (unsigned char*) malloc(row_size * depth_image.rows);
+    }
+
+    // Copy the image row by row
+    for (int i = 0; i < depth_image.rows; i++) {
+      memcpy(
+          (void*)(buffer + i * row_size), 
+          (void*) &depth_image.data[i],
+          row_size);
+    }
+  }
+
+  return buffer;
+}
+
 // compute Projection matrix from CameraInfo message
 void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::ConstPtr& current_caminfo, btScalar* glTf)
 {
@@ -285,36 +315,6 @@ void RealtimeURDFFilter::getProjectionMatrix (const sensor_msgs::CameraInfo::Con
   glTf[14]= -2.0 * far_plane_ * near_plane_ / (far_plane_ - near_plane_);
 
   glTf[11]= -1;
-}
-
-unsigned char* RealtimeURDFFilter::bufferFromDepthImage (cv::Mat1f depth_image)
-{
-  // Host buffer to hold depth pixel data
-  static unsigned char* buffer = NULL;
-
-  // Try to get the pixel data from cv::Mat as one continuous buffer
-  if (depth_image.isContinuous()) {
-    buffer = depth_image.data;
-  } else {
-    // Get the size of each row in bytes
-    int row_size = depth_image.cols * depth_image.elemSize();
-
-    // Allocate the buffer
-    if (buffer == NULL) {
-      std::cout << "(re)allocating opengl depth buffer" << std::endl;
-      buffer = (unsigned char*) malloc(row_size * depth_image.rows);
-    }
-
-    // Copy the image row by row
-    for (int i = 0; i < depth_image.rows; i++) {
-      memcpy(
-          (void*)(buffer + i * row_size), 
-          (void*) &depth_image.data[i],
-          row_size);
-    }
-  }
-
-  return buffer;
 }
 
 void RealtimeURDFFilter::filter (
