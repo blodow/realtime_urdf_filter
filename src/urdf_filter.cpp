@@ -550,9 +550,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
     glVertex3f(-100.0,  100.0, far_plane_*0.99);
   glEnd();
  
+  // Transformation matrix
+  btScalar glTf[16];
+  
   // Apply user-defined camera offset transformation (launch file)
   tf::Transform transform (camera_offset_q_, camera_offset_t_);
-  btScalar glTf[16];
   transform.inverse().getOpenGLMatrix(glTf);
   glMultMatrixd((GLdouble*)glTf);
 
