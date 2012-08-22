@@ -678,11 +678,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         // draw color buffer 0
         fbo_->bind(0);
         glBegin(GL_QUADS);
-          glTexCoord2f(0.0, height_);
+          glTexCoord2f(0.0, fbo_->getHeight());
           glVertex2f(0.0, 0.5);
-          glTexCoord2f(width_, height_);
+          glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
           glVertex2f(0.333, 0.5);
-          glTexCoord2f(width_, 0.0);
+          glTexCoord2f(fbo_->getWidth(), 0.0);
           glVertex2f(0.333, 1.0);
           glTexCoord2f(0.0, 0.0);
           glVertex2f(0.0, 1.0);
@@ -691,11 +691,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         // draw color buffer 1
         fbo_->bind(1);
         glBegin(GL_QUADS);
-          glTexCoord2f(0.0, height_);
+          glTexCoord2f(0.0, fbo_->getHeight());
           glVertex2f(0.0, 0.0);
-          glTexCoord2f(width_, height_);
+          glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
           glVertex2f(0.333, 0.0);
-          glTexCoord2f(width_, 0.0);
+          glTexCoord2f(fbo_->getWidth(), 0.0);
           glVertex2f(0.333, 0.5);
           glTexCoord2f(0.0, 0.0);
           glVertex2f(0.0, 0.5);
@@ -704,11 +704,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         // draw color buffer 2
         fbo_->bind(2);
         glBegin(GL_QUADS);
-          glTexCoord2f(0.0, height_);
+          glTexCoord2f(0.0, fbo_->getHeight());
           glVertex2f(0.333, 0.5);
-          glTexCoord2f(width_, height_);
+          glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
           glVertex2f(0.666, 0.5);
-          glTexCoord2f(width_, 0.0);
+          glTexCoord2f(fbo_->getWidth(), 0.0);
           glVertex2f(0.666, 1.0);
           glTexCoord2f(0.0, 0.0);
           glVertex2f(0.333, 1.0);
@@ -717,11 +717,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         // draw color buffer 3
         fbo_->bind(3);
         glBegin(GL_QUADS);
-          glTexCoord2f(0.0, height_);
+          glTexCoord2f(0.0, fbo_->getHeight());
           glVertex2f(0.333, 0.0);
-          glTexCoord2f(width_, height_);
+          glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
           glVertex2f(0.666, 0.0);
-          glTexCoord2f(width_, 0.0);
+          glTexCoord2f(fbo_->getWidth(), 0.0);
           glVertex2f(0.666, 0.5);
           glTexCoord2f(0.0, 0.0);
           glVertex2f(0.333, 0.5);
@@ -730,11 +730,11 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
         // draw depth buffer 
         fbo_->bindDepth();
         glBegin(GL_QUADS);
-          glTexCoord2f(0.0, height_);
+          glTexCoord2f(0.0, fbo_->getHeight());
           glVertex2f(0.666, 0.5);
-          glTexCoord2f(width_, height_);
+          glTexCoord2f(fbo_->getWidth(), fbo_->getHeight());
           glVertex2f(1.0, 0.5);
-          glTexCoord2f(width_, 0.0);
+          glTexCoord2f(fbo_->getWidth(), 0.0);
           glVertex2f(1.0, 1.0);
           glTexCoord2f(0.0, 0.0);
           glVertex2f(0.666, 1.0);
