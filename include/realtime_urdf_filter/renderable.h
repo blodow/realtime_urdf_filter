@@ -37,6 +37,8 @@
 // #include <urdf_interface/color.h>
 #include <urdf_interface/color.h>
 
+#include <assimp/aiScene.h>
+
 // forward declare
 struct aiScene;
 struct aiMesh;
@@ -125,7 +127,7 @@ private:
   };
 
   void fromAssimpScene (const aiScene* scene);
-  void initMesh (unsigned int i, const aiMesh* mesh);
+  void initMesh (unsigned int i, const aiMesh* mesh, const aiNode* node);
 
   std::vector<SubMesh> meshes;
   double scale_x;

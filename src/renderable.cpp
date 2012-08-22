@@ -343,24 +343,49 @@ namespace realtime_urdf_filter
     for (unsigned int i = 0; i < meshes.size (); ++i)
     {
       const aiMesh* mesh = scene->mMeshes[i];
-      initMesh (i, mesh);
+      initMesh (i, mesh, scene->mRootNode);
     }
   }
 
-  void RenderableMesh::initMesh (unsigned int index, const aiMesh* mesh)
+  void RenderableMesh::initMesh (unsigned int index, const aiMesh* mesh, const aiNode* node)
   {
     // TODO: mesh->mMaterialIndex
     // TODO: const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
+    // Make sure we have a root node
+    if (!node) {
+      return;
+    }
+
+    // We need to fix the orientation
+    aiMatrix4x4 transform = node->mTransformation;
+    aiNode *pnode = node->mParent;
+    while (pnode) {
+      // Don't convert to y-up orientation, which is what the root node in
+      // Assimp does
+      if (pnode->mParent != NULL) {
+        transform = pnode->mTransformation * transform;
+      }
+      pnode = pnode->mParent;
+    }
+    // Get just the rotation, for transforming the normals
+    aiMatrix3x3 rotation(transform);
+
+    // Add the verticies
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
     {
-      const aiVector3D* pos = &(mesh->mVertices[i]);
-      const aiVector3D* n = &(mesh->mNormals[i]);
+      aiVector3D pos = mesh->mVertices[i];
+      aiVector3D n = mesh->mNormals[i];
       // TODO: const aiVector3D* pTexCoord = mesh->HasTextureCoords(0) ? &(mesh->mTextureCoords[0][i]) : &Zero3D;
+      
+      // Transform the positions and normals appropriately
+      pos = transform*pos;
+      n = rotation*n;
 
-      Vertex v(pos->x, pos->y, pos->z, n->x, n->y, n->z);
+      // Add a vertex / normal pair
+      Vertex v(pos.x, pos.y, pos.z, n.x, n.y, n.z);
       vertices.push_back (v);
     }
 
