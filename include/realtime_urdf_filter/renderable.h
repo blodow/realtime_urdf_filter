@@ -133,6 +133,8 @@ private:
   double scale_x;
   double scale_y;
   double scale_z;
+
+  std::string meshname_;
 };
 
 

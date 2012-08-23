@@ -295,7 +295,8 @@ namespace realtime_urdf_filter
     mutable resource_retriever::Retriever retriever_;
   };
 
-  RenderableMesh::RenderableMesh (std::string meshname)
+  RenderableMesh::RenderableMesh (std::string meshname) :
+    meshname_(meshname)
   {
     Assimp::Importer importer;
     importer.SetIOHandler(new ResourceIOSystem());
@@ -358,20 +359,20 @@ namespace realtime_urdf_filter
     if (!node) {
       return;
     }
-
     // We need to fix the orientation
+    ROS_INFO_STREAM("Parsing mesh: "<<meshname_);
     aiMatrix4x4 transform = node->mTransformation;
+    ROS_INFO_STREAM("  transform: "<<std::endl
+        <<std::fixed
+        <<"[ "<<*transform[0]<<" \t"<<*transform[1]<<" \t"<<*transform[2]<<" \t"<<*transform[3]<<std::endl
+        <<"  "<<*transform[4]<<" \t"<<*transform[5]<<" \t"<<*transform[6]<<" \t"<<*transform[7]<<std::endl
+        <<"  "<<*transform[8]<<" \t"<<*transform[9]<<" \t"<<*transform[10]<<" \t"<<*transform[11]<<std::endl
+        <<"  "<<*transform[12]<<" \t"<<*transform[13]<<" \t"<<*transform[14]<<" \t"<<*transform[15]<<std::endl);
     aiNode *pnode = node->mParent;
-    while (pnode) {
-      // Don't convert to y-up orientation, which is what the root node in
-      // Assimp does
-      if (pnode->mParent != NULL) {
-        transform = pnode->mTransformation * transform;
-      }
-      pnode = pnode->mParent;
-    }
+
     // Get just the rotation, for transforming the normals
     aiMatrix3x3 rotation(transform);
+
 
     // Add the verticies
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
@@ -381,8 +382,10 @@ namespace realtime_urdf_filter
       // TODO: const aiVector3D* pTexCoord = mesh->HasTextureCoords(0) ? &(mesh->mTextureCoords[0][i]) : &Zero3D;
       
       // Transform the positions and normals appropriately
+#if 0
       pos = transform*pos;
       n = rotation*n;
+#endif
 
       // Add a vertex / normal pair
       Vertex v(pos.x, pos.y, pos.z, n.x, n.y, n.z);
