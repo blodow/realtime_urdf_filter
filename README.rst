@@ -15,7 +15,9 @@ comparision operations.
 Dependencies
 ------------
 
-This package requires the following:
+This has been verified to run on Ubuntu 12.04 with ROS Fuerte.
+
+This package requires the following: 3rd party libraries
  - GLSL (GL Shader Language) version 1.40 support or greater
  - GLEW (GL Extension Wrangler) version 1.6
 
