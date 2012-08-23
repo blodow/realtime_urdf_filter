@@ -360,18 +360,15 @@ namespace realtime_urdf_filter
     }
 
     // We need to fix the orientation
+    ROS_DEBUG_STREAM("Parsing mesh: "<<name);
     aiMatrix4x4 transform = node->mTransformation;
-    aiNode *pnode = node->mParent;
-    while (pnode) {
-      // Don't convert to y-up orientation, which is what the root node in
-      // Assimp does
-      if (pnode->mParent != NULL) {
-        transform = pnode->mTransformation * transform;
-      }
-      pnode = pnode->mParent;
-    }
-    // Get just the rotation, for transforming the normals
     aiMatrix3x3 rotation(transform);
+
+    ROS_DEBUG_STREAM("  transform: "
+        <<"[ "<<transform[0]<<" "<<transform[1]<<" "<<transform[2]<<" "<<transform[3]<<std::endl
+        <<"  "<<transform[4]<<" "<<transform[5]<<" "<<transform[6]<<" "<<transform[7]<<std::endl
+        <<"  "<<transform[8]<<" "<<transform[9]<<" "<<transform[10]<<" "<<transform[11]<<std::endl
+        <<"  "<<transform[12]<<" "<<transform[13]<<" "<<transform[14]<<" "<<transform[15]<<std::endl);
 
     // Add the verticies
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
@@ -380,9 +377,11 @@ namespace realtime_urdf_filter
       aiVector3D n = mesh->mNormals[i];
       // TODO: const aiVector3D* pTexCoord = mesh->HasTextureCoords(0) ? &(mesh->mTextureCoords[0][i]) : &Zero3D;
       
+      // FIXME: Some .dae files are not processed properly by this function
       // Transform the positions and normals appropriately
-      pos = transform*pos;
-      n = rotation*n;
+      // The following does not do the right transform
+      // pos *= transform;
+      // n = rotation*n;
 
       // Add a vertex / normal pair
       Vertex v(pos.x, pos.y, pos.z, n.x, n.y, n.z);
