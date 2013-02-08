@@ -103,6 +103,19 @@ following can be launched from remote::
     roslaunch realtime_urdf_filter tracker.launch
 
 
+Troubleshooting
+---------------
+
+Every once in a while, assimp fails when importing STL files. If the first 5 bytes are "solid", it treats it as ASCII, however there are several binary STL files around that start with "solid". You'll get an error message along the lines of:
+
+    [ERROR] [1360339850.748534073]: Could not load resource [package://pr2_description/meshes/sensors/kinect_prosilica_v0/115x100_swept_back--coarse.STL]: STL: ASCII file is empty or invalid; no data loaded
+
+In that case, a simple work around (read: "hack") is to replace the "solid" with "rolid", and assimp loads it as a binary file.
+
+    printf 'r' | dd of=bad_stl_file.STL bs=1 seek=0 count=1 conv=notrunc 
+
+I'm not exactly sure why RViz does not seem to have this problem.
+
 License
 -------
 
