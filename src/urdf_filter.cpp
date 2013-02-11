@@ -182,6 +182,8 @@ double RealtimeURDFFilter::getTime ()
 void RealtimeURDFFilter::filter (
     unsigned char* buffer, double* projection_matrix, int width, int height)
 {
+  static std::vector<double> timings;
+  double begin = getTime();
   if (width_ != width || height_ != height) {
     if(width_ !=0 || height_!=0) {
       ROS_ERROR ("image size has changed (%ix%i) -> (%ix%i)", width_, height_, width, height);
@@ -202,23 +204,41 @@ void RealtimeURDFFilter::filter (
     need_mask_ = false;
   }
 
-  // Timing
-  static unsigned count = 0;
-  static double last = getTime ();
-  double now = getTime ();
-
-  if (++count == 30 || (now - last) > 5) {
-    std::cout << "Average framerate: " << std::setprecision(3) << double(count)/double(now - last) << " Hz" << std::endl;
-    count = 0;
-    last = now;
-  }
-
   // get depth_image into OpenGL texture buffer
   int size_in_bytes = width_ * height_ * sizeof(float);
   textureBufferFromDepthBuffer(buffer, size_in_bytes);
 
   // render everything
   this->render(projection_matrix);
+
+  // Timing
+  static unsigned count = 0;
+  static double last = getTime ();
+
+  double now = getTime ();
+  timings.push_back ((now - begin) * 1000.0);
+
+  if (++count == 30 || (now - last) > 5) {
+    double sum = 0.0;
+    double max = 0.0;
+    double min = FLT_MAX;
+    for (std::vector<double>::iterator it = timings.begin(); it!=timings.end(); ++it)
+    {
+      min = std::min (min, *it);
+      max = std::max (max, *it);
+      sum += *it;
+    }
+
+    std::cout << "Average framerate: " 
+      << std::setprecision(3) << double(count)/double(now - last) << " Hz " 
+      << " (min: "<< min
+      << ", max: " << max 
+      << ", avg: " << sum / timings.size()
+      << " ms)" << std::endl;
+    count = 0;
+    last = now;
+    timings.clear();
+  }
 }
 
 // callback function that gets ROS images and does everything

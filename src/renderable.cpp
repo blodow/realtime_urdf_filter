@@ -300,7 +300,7 @@ namespace realtime_urdf_filter
   {
     Assimp::Importer importer;
     importer.SetIOHandler(new ResourceIOSystem());
-    const aiScene* scene = importer.ReadFile(meshname, aiProcess_SortByPType|aiProcess_GenNormals|aiProcess_Triangulate|aiProcess_GenUVCoords|aiProcess_FlipUVs);
+    const aiScene* scene = importer.ReadFile(meshname, aiProcess_PreTransformVertices|aiProcess_SortByPType|aiProcess_GenNormals|aiProcess_Triangulate|aiProcess_GenUVCoords|aiProcess_FlipUVs);
     if (!scene)
     {
       ROS_ERROR("Could not load resource [%s]: %s", meshname.c_str(), importer.GetErrorString());
