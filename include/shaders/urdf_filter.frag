@@ -33,8 +33,9 @@ void main(void)
                          1.0);
 
   // fourth color attachment: difference image
-  float diff_col = (virtual_depth - sensor_depth > max_diff) ? sensor_depth: replace_value;
-  gl_FragData[1] = vec4 (diff_col, diff_col, diff_col, 1.0);
+  bool deleted = (virtual_depth - sensor_depth > max_diff);
+  float diff_col = deleted ? sensor_depth: replace_value;
+  gl_FragData[1] = vec4 (diff_col, diff_col, deleted ? 1 : 0, 1.0);
 }
 
 		
