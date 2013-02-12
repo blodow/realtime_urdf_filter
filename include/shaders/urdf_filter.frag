@@ -33,9 +33,12 @@ void main(void)
                          1.0);
 
   // fourth color attachment: difference image
-  bool deleted = (virtual_depth - sensor_depth > max_diff);
-  float diff_col = deleted ? sensor_depth: replace_value;
-  gl_FragData[1] = vec4 (diff_col, diff_col, deleted ? 1 : 0, 1.0);
+  bool should_filter = (virtual_depth - sensor_depth) > max_diff;
+
+  if (should_filter)
+    gl_FragData[1] = vec4 (replace_value, 0.0, 0.0, 1.0); //  that should make it red
+  else
+    gl_FragData[1] = vec4 (sensor_depth, sensor_depth, sensor_depth, 1.0); // grayscale depth image
 }
 
 		
