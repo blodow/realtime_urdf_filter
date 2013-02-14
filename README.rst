@@ -17,8 +17,10 @@ Example of robot self filtering to proprocess for human skeleton tracking:
 .. image:: images/tracker.png
 
 Robot self filtering for object manipulation:
+
 .. image:: images/grasping.png
          :width: 50%
+
 .. image:: images/rviz.png
          :width: 50%
 
