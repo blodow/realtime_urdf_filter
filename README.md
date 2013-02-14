@@ -20,7 +20,7 @@ Robot self filtering for object manipulation:
    
 <img src="images/grasping.png" alt="Robot Self Filtering" style="width: 320px;"/>
 
-<img src="images/rviz.png" alt="Robot Self Filtering" style="scale: 50 %;"/>
+<img src="images/rviz.png" alt="Robot Self Filtering" style="max-width: 50 %;"/>
 
 
 Dependencies
