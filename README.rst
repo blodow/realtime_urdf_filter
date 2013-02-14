@@ -12,6 +12,17 @@ rendered from the same point of view. As a result, we can access the measured
 as well as the virtual depth map in the shader, where we can define efficient
 comparision operations.
 
+Example of robot self filtering to proprocess for human skeleton tracking:
+
+.. image:: images/tracker.png
+
+Robot self filtering for object manipulation:
+.. image:: images/grasping.png
+         :width: 50%
+.. image:: images/rviz.png
+         :width: 50%
+
+
 Dependencies
 ------------
 
