@@ -14,13 +14,14 @@ comparision operations.
 
 Example of robot self filtering to proprocess for human skeleton tracking:
 
-\centerline{\includegraphics[width=0.5\columnwidth]{images/tracker.png}}
+<img src="images/tracker.png" alt="Tracker Preprocessing" style="width: 45%;"/>
 
 Robot self filtering for object manipulation:
+   
+<img src="images/grasping.png" alt="Robot Self Filtering" style="width: 45%;"/>
 
-\centerline{\includegraphics[width=0.45\columnwidth]{images/grasping.png}
-\includegraphics[width=0.45\columnwidth]{images/grasping.png}
-}
+<img src="images/rviz.png" alt="Robot Self Filtering" style="width: 45%;"/>
+
 
 Dependencies
 ------------
