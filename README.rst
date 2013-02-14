@@ -15,14 +15,15 @@ comparision operations.
 Example of robot self filtering to proprocess for human skeleton tracking:
 
 .. image:: images/tracker.png
+         :width: 320px
 
 Robot self filtering for object manipulation:
 
 .. image:: images/grasping.png
-         :width: 50%
+         :width: 320px
 
 .. image:: images/rviz.png
-         :width: 50%
+         :width: 320px
 
 
 Dependencies
