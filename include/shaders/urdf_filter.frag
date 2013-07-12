@@ -33,7 +33,7 @@ void main(void)
                          1.0);
 
   // fourth color attachment: difference image
-  bool should_filter = (virtual_depth - sensor_depth) > max_diff;
+  bool should_filter = (sensor_depth - virtual_depth) > max_diff;
 
   if (should_filter)
     gl_FragData[1] = vec4 (replace_value, 0.0, 0.0, 1.0); //  that should make it red
