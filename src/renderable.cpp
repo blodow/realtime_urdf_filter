@@ -39,6 +39,7 @@
 #include <assimp/IOStream.h>
 #include <assimp/IOSystem.h>
 #include <ros/assert.h>
+#include <bullet/LinearMath/btScalar.h>
 
 namespace realtime_urdf_filter
 {
@@ -54,7 +55,7 @@ namespace realtime_urdf_filter
 
     tf::Transform transform (link_to_fixed);
     transform *= link_offset;
-    btScalar glTf[16];
+    tfScalar glTf[16];
     transform.getOpenGLMatrix(glTf);
     glMultMatrixd((GLdouble*)glTf);
   }
