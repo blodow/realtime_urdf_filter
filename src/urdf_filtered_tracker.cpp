@@ -45,6 +45,9 @@
 #include <XnCppWrapper.h>
 #include <XnPropNames.h>
 
+#include <bullet/LinearMath/btScalar.h>
+#include <bullet/LinearMath/btMatrix3x3.h>
+
 #define CHECK_RC(nRetVal, what)										\
 	if (nRetVal != XN_STATUS_OK)									\
 	{																\
@@ -448,7 +451,8 @@ public:
 
       tf::Transform transform;
       transform.setOrigin(tf::Vector3(x, y, z));
-      transform.setRotation(q);
+      tf::Quaternion tf_q(q.x(), q.y(), q.z(), q.w());
+      transform.setRotation(tf_q);
 
       geometry_msgs::TransformStamped msg;
       

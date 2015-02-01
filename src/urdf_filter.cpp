@@ -33,7 +33,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-
+#include <bullet/LinearMath/btScalar.h>
+#include <bullet/LinearMath/btMatrix3x3.h>
 #define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
@@ -423,7 +424,7 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 
 // compute Projection matrix from CameraInfo message
 void RealtimeURDFFilter::getProjectionMatrix (
-    const sensor_msgs::CameraInfo::ConstPtr& info, btScalar* glTf)
+    const sensor_msgs::CameraInfo::ConstPtr& info, double* glTf)
 {
   tf::Vector3 position;
   tf::Quaternion orientation;
@@ -565,7 +566,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   glEnd();
  
   // Transformation matrix
-  btScalar glTf[16];
+  double glTf[16];
   
   // Apply user-defined camera offset transformation (launch file)
   tf::Transform transform (camera_offset_q_, camera_offset_t_);

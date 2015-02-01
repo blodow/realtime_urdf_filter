@@ -1,0 +1,36 @@
+<package>
+  <name>urdf_realtime_filter</name>
+  <version>0.0.0</version>
+  <description>
+     realtime_urdf_filter
+  </description>
+  <author>Nico Blodow</author>
+  <maintainer email="todo@todo.com">TODO</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <run_depend>roscpp</run_depend>
+  <build_depend>urdf</build_depend>
+  <run_depend>urdf</run_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>tf</run_depend>
+  <build_depend>resource_retriever</build_depend>
+  <run_depend>resource_retriever</run_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <build_depend>cv_bridge</build_depend>
+  <run_depend>cv_bridge</run_depend>
+  <build_depend>nodelet</build_depend>
+  <run_depend>nodelet</run_depend>
+  <build_depend>image_transport</build_depend>
+  <run_depend>image_transport</run_depend>
+  <build_depend>libglew-dev</build_depend>
+  <run_depend>libglew-dev</run_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
+  </export>
+
+</package>
+
+
