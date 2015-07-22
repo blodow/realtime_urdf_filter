@@ -45,8 +45,11 @@
 #include <XnCppWrapper.h>
 #include <XnPropNames.h>
 
-#include <bullet/LinearMath/btScalar.h>
+// #include <bullet/LinearMath/btScalar.h>
 #include <bullet/LinearMath/btMatrix3x3.h>
+#include <tf/LinearMath/Matrix3x3.h>
+// #include <tf/LinearMath/Scalar.h>
+
 
 #define CHECK_RC(nRetVal, what)										\
 	if (nRetVal != XN_STATUS_OK)									\
