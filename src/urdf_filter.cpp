@@ -275,8 +275,6 @@ void RealtimeURDFFilter::filter_callback
   {
     cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
     cv_bridge::CvImage out_masked_depth;
-    //out_masked_depth.header.frame_id = cam_frame_;
-    //out_masked_depth.header.stamp = ros_depth_image->header.stamp;
     out_masked_depth.header = ros_depth_image->header;
     out_masked_depth.encoding = "32FC1";
     out_masked_depth.image = masked_depth_image;
