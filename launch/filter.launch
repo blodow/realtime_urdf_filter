@@ -1,0 +1,12 @@
+<launch>
+  
+  <node pkg="realtime_urdf_filter" type="realtime_urdf_filter" name="$(anon realtime_urdf_filter)" output="screen">
+    <remap from="~input_depth" to="/kinect1/depth_registered/image_raw"/>
+    <remap from="~output_depth" to="/kinect1/depth_registered/filtered" />
+    <remap from="~output_mask" to="/urdf_filtered_mask" />
+
+    <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
+  </node>                 
+
+</launch>
+

@@ -3,8 +3,8 @@
 
   <!-- Launch nodelet -->
   <node if="$(arg nodelet)" pkg="nodelet" type="nodelet" name="realtime_urtf_filter_nodelet" args="load realtime_urdf_filter/RealtimeURDFFilterNodelet camera_nodelet_manager" output="screen">
-    <remap from="~input_depth" to="/camera/depth_registered/image_rect"/>
-    <remap from="~output_depth" to="/camera/depth_registered_filtered/image_rect" />
+    <remap from="~input_depth" to="/kinect1/depth_registered/image_raw"/>
+    <remap from="~output_depth" to="/kinect1/depth_registered/filtered" />
     <remap from="~output_mask" to="/urdf_filtered_mask" />
 
     <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
@@ -12,18 +12,20 @@
 
   <node unless="$(arg nodelet)" 
     pkg="realtime_urdf_filter" type="realtime_urdf_filter" name="$(anon realtime_urdf_filter)" output="screen">
-    <remap from="~input_depth" to="/camera/depth_registered/image_rect"/>
-    <remap from="~output_depth" to="/camera/depth_registered_filtered/image_rect" />
+    <remap from="~input_depth" to="/kinect1/depth_registered/image_raw"/>
+    <remap from="~output_depth" to="/kinect1/depth_registered/filtered" />
     <remap from="~output_mask" to="/urdf_filtered_mask" />
 
     <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
   </node>                 
 
-  <!-- Load an example URDF -->
-  <param name="robot_description" command="$(find xacro)/xacro.py '$(find realtime_urdf_filter)/urdf/example.urdf.xml'"/>
+  <!-- Load an example URDF 
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find lwr_description)/urdf/lwr.urdf.xacro'"/>
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
-    <param name="tf_prefix" value="EXAMPLE"/>
+    <param name="tf_prefix" value=""/>
   </node>
+  -->
+  
 </launch>
 
