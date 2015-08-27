@@ -33,8 +33,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-#include <bullet/LinearMath/btScalar.h>
-#include <bullet/LinearMath/btMatrix3x3.h>
+// #include <bullet/LinearMath/btScalar.h>
+// #include <bullet/LinearMath/btMatrix3x3.h>
 #define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
@@ -275,8 +275,6 @@ void RealtimeURDFFilter::filter_callback
   {
     cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
     cv_bridge::CvImage out_masked_depth;
-    //out_masked_depth.header.frame_id = cam_frame_;
-    //out_masked_depth.header.stamp = ros_depth_image->header.stamp;
     out_masked_depth.header = ros_depth_image->header;
     out_masked_depth.encoding = "32FC1";
     out_masked_depth.image = masked_depth_image;

@@ -1,7 +1,7 @@
 <launch>
-    <include file="$(find openni_camera)/launch/kinect_frames.launch"/>
+    <!-- <include file="$(find openni_camera)/launch/kinect_frames.launch"/> -->
 
-    <param name="workspace_description" textfile="$(find realtime_urdf_filter)/urdf/saphari_workspace.urdf.xml" />
+    <param name="workspace_description" textfile="$(find realtime_urdf_filter)/urdf/example.urdf.xml" />
     <node pkg="tf" type="static_transform_publisher" name="wall1_transform_publisher" args="1.5  -1.5 1 0.785398163  0 0 /floor /wall1 1000" />
     <node pkg="tf" type="static_transform_publisher" name="wall2_transform_publisher" args="-1.5 -1.2 1 -0.785398163 0 0 /floor /wall2 1000" />
 
