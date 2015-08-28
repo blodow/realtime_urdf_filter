@@ -36,9 +36,7 @@
 // this is necessary for diamondback. for more recent ROS versions, use:
 // #include <urdf_interface/color.h>
 #include <urdf_model/color.h>
-
-#include <assimp/aiScene.h>
-
+#include <assimp/scene.h>
 // forward declare
 struct aiScene;
 struct aiMesh;
