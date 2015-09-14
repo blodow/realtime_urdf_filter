@@ -1,16 +1,18 @@
 <launch>
 
+  <arg name="kinect_name" default="camera" />  
+
   <!-- Nodelet manager for this pipeline -->
   <node pkg="nodelet" type="nodelet" args="manager"
-        name="record_player_manager" output="screen"/>
+        name="$(arg kinect_name)_record_player_manager" output="screen"/>
 
   <!-- Convert it into a point cloud -->
-  <node pkg="nodelet" type="nodelet" name="cloudify"
-        args="load depth_image_proc/point_cloud_xyzrgb record_player_manager --no-bond">
-    <remap from="depth_registered/image_rect" to="camera/depth_registered_filtered/image_raw"/>
-    <remap from="depth_registered/points" to="camera/depth_registered_filtered/points"/>
-    <remap from="rgb/image_rect_color" to="camera/rgb/image_rect_color"/>
-    <remap from="rgb/camera_info" to="camera/rgb/camera_info"/>
+  <node pkg="nodelet" type="nodelet" name="$(arg kinect_name)_cloudify"
+        args="load depth_image_proc/point_cloud_xyzrgb $(arg kinect_name)_record_player_manager --no-bond">
+    <remap from="depth_registered/image_rect" to="$(arg kinect_name)/depth_registered_filtered/image_raw"/>
+    <remap from="depth_registered/points" to="$(arg kinect_name)/depth_registered_filtered/points"/>
+    <remap from="rgb/image_rect_color" to="$(arg kinect_name)/rgb/image_rect_color"/>
+    <remap from="rgb/camera_info" to="$(arg kinect_name)/rgb/camera_info"/>
   </node>
   
 </launch>

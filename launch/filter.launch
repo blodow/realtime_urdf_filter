@@ -1,0 +1,15 @@
+<launch>
+  
+  <arg name="kinect_name" default="camera" />
+
+  <node pkg="realtime_urdf_filter" type="realtime_urdf_filter" name="$(arg kinect_name)_realtime_urdf_filter" output="screen">
+    <remap from="~input_depth" to="/$(arg kinect_name)/depth_registered/image_raw"/>
+    <remap from="~output_depth" to="/$(arg kinect_name)/depth_registered_filtered/image_raw" />
+    <remap from="~output_mask" to="/$(arg kinect_name)/urdf_filtered_mask" />
+    <param name="camera_frame" value="/$(arg kinect_name)_rgb_optical_frame" />
+
+    <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
+  </node>                 
+
+</launch>
+
