@@ -89,3 +89,25 @@ target_link_libraries (realtime_urdf_filter urdf_filter ${catkin_LIBRARIES})
 
 add_library (realtime_urdf_filter_nodelet src/realtime_urdf_filter_nodelet.cpp)
 target_link_libraries (realtime_urdf_filter_nodelet urdf_filter ${catkin_LIBRARIES})
+
+install(TARGETS FBO shaderwrapper urdf_filter urdf_filtered_tracker realtime_urdf_filter realtime_urdf_filter_nodelet
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h")
+
+install(FILES plugins/nodelet_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+foreach(dir launch urdf include/shaders)
+   install(DIRECTORY ${dir}/
+      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir})
+endforeach(dir)
+
+install(FILES include/SamplesConfig.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/include)
+
+# TODO install: include/GL3/gl3.h?
