@@ -33,11 +33,19 @@
 #include <GL/freeglut.h>
 #include <realtime_urdf_filter/renderable.h>
 #include <resource_retriever/retriever.h>
+
+#if defined(ASSIMP_UNIFIED_HEADER_NAMES)
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/IOStream.hpp>
+#include <assimp/IOSystem.hpp>
+#else
 #include <assimp/assimp.hpp>
-#include <assimp/aiScene.h>
 #include <assimp/aiPostProcess.h>
 #include <assimp/IOStream.h>
 #include <assimp/IOSystem.h>
+#endif
+
 #include <ros/assert.h>
 #include <bullet/LinearMath/btScalar.h>
 

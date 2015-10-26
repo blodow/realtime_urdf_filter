@@ -37,7 +37,12 @@
 // #include <urdf_interface/color.h>
 #include <urdf_model/color.h>
 
+#if defined(ASSIMP_UNIFIED_HEADER_NAMES)
+#include <assimp/scene.h>
+#else
 #include <assimp/aiScene.h>
+#endif
+
 
 // forward declare
 struct aiScene;

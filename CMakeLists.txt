@@ -1,10 +1,35 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(urdf_realtime_filter)
+
+find_package(ASSIMP QUIET)
+if (NOT ASSIMP_FOUND)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(ASSIMP assimp)
+endif()
+if (ASSIMP_FOUND)
+  if (NOT ${ASSIMP_VERSION} VERSION_LESS "2.0.1150")
+    add_definitions(-DASSIMP_UNIFIED_HEADER_NAMES)
+    message(STATUS "Assimp version has unified headers")
+  else()
+    message(STATUS "Assimp version does not have unified headers")
+  endif()
+else()
+  message(STATUS "could not find assimp (perhaps available thorugh ROS package?), so assuming assimp v2")
+  set(ASSIMP_INCLUDE_DIRS )
+  set(ASSIMP_LIBRARY_DIRS )
+  set(ASSIMP_LIBRARIES assimp)
+  set(ASSIMP_LIBRARY_DIRS)
+  set(ASSIMP_CXX_FLAGS)
+  set(ASSIMP_CFLAGS_OTHER)
+  set(ASSIMP_LINK_FLAGS)
+  set(ASSIMP_INCLUDE_DIRS)
+endif()
+
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   nodelet
   urdf
-  urdfdom_headers
   tf
   resource_retriever
   cv_bridge
@@ -18,6 +43,8 @@ catkin_package(
   )
 
 include_directories(${catkin_INCLUDE_DIR} include)
+include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
+link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
 find_package(OpenNI)
@@ -52,7 +79,7 @@ target_link_libraries (urdf_filter
   ${catkin_LIBRARIES}
   FBO
   shaderwrapper
-  assimp)
+  ${ASSIMP_LIBRARIES})
 
 add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
 target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI ${catkin_LIBRARIES})
