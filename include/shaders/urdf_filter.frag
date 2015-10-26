@@ -20,6 +20,7 @@ void main(void)
 {
   // first color attachment: sensor depth image
   float sensor_depth = texelFetch (depth_texture, int(gl_FragCoord.y)*width + int(gl_FragCoord.x)).x;
+  sensor_depth = sensor_depth / 1000.0;   //Fix to get the depth in the right unit
   gl_FragData[0] = vec4 (sensor_depth, sensor_depth, sensor_depth, 1.0);
 
   // second color attachment: opengl depth image
