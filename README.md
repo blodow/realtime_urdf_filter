@@ -26,7 +26,7 @@ Robot self filtering for object manipulation:
 Dependencies
 ------------
 
-This has been verified to run on Ubuntu 12.04 with ROS Fuerte.
+This has been verified to run on Ubuntu 14.04 with ROS Indigo.
 
 This package requires the following: 3rd party libraries
  - GLSL (GL Shader Language) version 1.40 support or greater
