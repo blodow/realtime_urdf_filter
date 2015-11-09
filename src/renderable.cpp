@@ -374,11 +374,11 @@ namespace realtime_urdf_filter
     aiMatrix3x3 rotation(transform);
 
     ROS_INFO_STREAM("  transform: "<<std::endl
-        <<std::fixed
-        <<"[ "<<*transform[0]<<" \t"<<*transform[1]<<" \t"<<*transform[2]<<" \t"<<*transform[3]<<std::endl
-        <<"  "<<*transform[4]<<" \t"<<*transform[5]<<" \t"<<*transform[6]<<" \t"<<*transform[7]<<std::endl
-        <<"  "<<*transform[8]<<" \t"<<*transform[9]<<" \t"<<*transform[10]<<" \t"<<*transform[11]<<std::endl
-        <<"  "<<*transform[12]<<" \t"<<*transform[13]<<" \t"<<*transform[14]<<" \t"<<*transform[15]<<std::endl);
+        << std::fixed
+        << "[ " << transform.a1  << " \t" << transform.a2 << " \t" << transform.a3 << " \t" << transform.a4 << std::endl
+        << "  " << transform.b1  << " \t" << transform.b2 << " \t" << transform.b3 << " \t" << transform.b4 << std::endl
+        << "  " << transform.c1  << " \t" << transform.c2 << " \t" << transform.c3 << " \t" << transform.c4 << std::endl
+        << "  " << transform.d1  << " \t" << transform.d2 << " \t" << transform.d3 << " \t" << transform.d4 << " ]" << std::endl);
     aiNode *pnode = node->mParent;
 
 
