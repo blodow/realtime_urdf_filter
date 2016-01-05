@@ -35,7 +35,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <bullet/LinearMath/btScalar.h>
 #include <bullet/LinearMath/btMatrix3x3.h>
-#define USE_OWN_CALIBRATION
+// #define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
 
@@ -440,10 +440,10 @@ void RealtimeURDFFilter::getProjectionMatrix (
   double cx = P[2];
   double cy = P[6];
 #else
-  double fx = info->P[0] * 0.5;
-  double fy = info->P[5] * 0.5;
-  double cx = info->P[2] * 0.5;
-  double cy = (info->P[6]) * 0.5 - 48;
+  double fx = info->P[0];
+  double fy = info->P[5];
+  double cx = info->P[2];
+  double cy = info->P[6];
 
   // TODO: check if this does the right thing with respect to registered depth / camera info
   // Add the camera's translation relative to the left camera (from P[3]);

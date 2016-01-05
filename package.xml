@@ -1,5 +1,5 @@
 <package>
-  <name>urdf_realtime_filter</name>
+  <name>realtime_urdf_filter</name>
   <version>0.0.0</version>
   <description>
      realtime_urdf_filter

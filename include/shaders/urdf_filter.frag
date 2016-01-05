@@ -20,6 +20,7 @@ void main(void)
 {
   // first color attachment: sensor depth image
   float sensor_depth = texelFetch (depth_texture, int(gl_FragCoord.y)*width + int(gl_FragCoord.x)).x;
+  sensor_depth = sensor_depth / 1000.0;   //Fix to get the depth in the right unit
   gl_FragData[0] = vec4 (sensor_depth, sensor_depth, sensor_depth, 1.0);
 
   // second color attachment: opengl depth image
@@ -33,7 +34,7 @@ void main(void)
                          1.0);
 
   // fourth color attachment: difference image
-  bool should_filter = (virtual_depth - sensor_depth) > max_diff;
+  bool should_filter = sensor_depth > (virtual_depth - max_diff);
 
   if (should_filter)
     gl_FragData[1] = vec4 (replace_value, 0.0, 0.0, 1.0); //  that should make it red
