@@ -11,6 +11,8 @@ uniform float z_far;
 
 uniform float max_diff;
 
+uniform float unit_convert_value;
+
 float to_linear_depth (float d)
 {
   return (z_near * z_far / (z_near - z_far)) / (d - z_far / (z_far - z_near));
@@ -20,7 +22,7 @@ void main(void)
 {
   // first color attachment: sensor depth image
   float sensor_depth = texelFetch (depth_texture, int(gl_FragCoord.y)*width + int(gl_FragCoord.x)).x;
-  sensor_depth = sensor_depth / 1000.0;   //Fix to get the depth in the right unit
+  sensor_depth = sensor_depth / unit_convert_value;   //Fix to get the depth in the right unit
   gl_FragData[0] = vec4 (sensor_depth, sensor_depth, sensor_depth, 1.0);
 
   // second color attachment: opengl depth image
