@@ -258,6 +258,11 @@ void RealtimeURDFFilter::filter_callback
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
   }
+  if (ros_depth_image->encoding == sensor_msgs::image_encodings::TYPE_16UC1) {
+    unit_convert_value_ = 1000.0;
+  } else {
+    unit_convert_value_ = 1.0;
+  }
 
   // Convert the depth image into a char buffer
   cv::Mat1f depth_image = orig_depth_img->image;
@@ -599,6 +604,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   shader.SetUniformVal1f (std::string("z_near"), near_plane_);
   shader.SetUniformVal1f (std::string("max_diff"), float(depth_distance_threshold_));
   shader.SetUniformVal1f (std::string("replace_value"), float(filter_replace_value_));
+  shader.SetUniformVal1f (std::string("unit_convert_value"), float(unit_convert_value_));
   glBindTexture (GL_TEXTURE_BUFFER, depth_texture_);
 
   // render every renderable / urdf model
