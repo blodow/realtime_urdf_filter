@@ -111,7 +111,6 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   depth_sub_ = image_transport_.subscribeCamera("input_depth", 10,
       &RealtimeURDFFilter::filter_callback, this);
   depth_pub_ = image_transport_.advertiseCamera("output_depth", 10);
-  depth_pub_raw_ = image_transport_.advertiseCamera("output_depth_raw", 10);
   mask_pub_ = image_transport_.advertiseCamera("output_mask", 10);
 }
 
