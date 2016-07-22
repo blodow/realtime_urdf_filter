@@ -249,15 +249,24 @@ void RealtimeURDFFilter::filter_callback
 
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
+  cv::Mat depth_image;
   try {
-    orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_32FC1);
+    if(ros_depth_image->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
+    {
+      orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_32FC1);
+      depth_image = orig_depth_img->image;
+    }
+    else
+    {
+      orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
+      orig_depth_img->image.convertTo(depth_image, CV_32F, 0.001);
+    }
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
   }
 
   // Convert the depth image into a char buffer
-  cv::Mat1f depth_image = orig_depth_img->image;
   unsigned char *buffer = bufferFromDepthImage(depth_image);
 
   // Compute the projection matrix from the camera_info 
@@ -271,11 +280,14 @@ void RealtimeURDFFilter::filter_callback
   if (depth_pub_.getNumSubscribers() > 0)
   {
     cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
+    if(ros_depth_image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
+    {
+      masked_depth_image.convertTo(masked_depth_image, CV_16U, 1000.0);
+    }
+
     cv_bridge::CvImage out_masked_depth;
-    //out_masked_depth.header.frame_id = cam_frame_;
-    //out_masked_depth.header.stamp = ros_depth_image->header.stamp;
     out_masked_depth.header = ros_depth_image->header;
-    out_masked_depth.encoding = "32FC1";
+    out_masked_depth.encoding = ros_depth_image->encoding;
     out_masked_depth.image = masked_depth_image;
     depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
   }
@@ -285,9 +297,8 @@ void RealtimeURDFFilter::filter_callback
     cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
 
     cv_bridge::CvImage out_mask;
-    out_mask.header.frame_id = cam_frame_;
-    out_mask.header.stamp = ros_depth_image->header.stamp;
-    out_mask.encoding = "mono8";
+    out_mask.header = ros_depth_image->header;
+    out_mask.encoding = sensor_msgs::image_encodings::MONO8;
     out_mask.image = mask_image;
     mask_pub_.publish (out_mask.toImageMsg (), camera_info);
   }
@@ -606,76 +617,6 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   
   fbo_->endCapture();
   glPopAttrib();
-
-  // Use stencil buffer to draw a red / blue mask into color attachment 3
-  if (need_mask_ || show_gui_) {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-    fbo_->beginCapture();
-      glDrawBuffer(GL_COLOR_ATTACHMENT3);
-
-      glEnable(GL_STENCIL_TEST);
-      glStencilFunc(GL_EQUAL, 0x1, 0x1);
-      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-      glDisable(GL_DEPTH_TEST);
-      glDisable(GL_TEXTURE_2D);
-      fbo_->disableTextureTarget();
-
-      glMatrixMode(GL_PROJECTION);
-      glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0.0, 1.0, 0.0, 1.0);
-
-        glMatrixMode(GL_MODELVIEW);	
-        glPushMatrix();
-          glLoadIdentity();
-
-          glColor3f(1.0, 0.0, 0.0);
-
-          glBegin(GL_QUADS);
-            glVertex2f(0.0, 0.0);
-            glVertex2f(1.0, 0.0);
-            glVertex2f(1.0, 1.0);
-            glVertex2f(0.0, 1.0);
-          glEnd();
-
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-      glPopMatrix();
-
-      glStencilFunc(GL_EQUAL, 0x0, 0x1);
-      glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-      glDisable(GL_DEPTH_TEST);
-      glDisable(GL_TEXTURE_2D);
-      fbo_->disableTextureTarget();
-
-      glMatrixMode(GL_PROJECTION);
-      glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0.0, 1.0, 0.0, 1.0);
-
-        glMatrixMode(GL_MODELVIEW);	
-        glPushMatrix();
-          glLoadIdentity();
-
-          glColor3f(0.0, 0.0, 1.0);
-
-          glBegin(GL_QUADS);
-            glVertex2f(0.0, 0.0);
-            glVertex2f(1.0, 0.0);
-            glVertex2f(1.0, 1.0);
-            glVertex2f(0.0, 1.0);
-          glEnd();
-
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-      glPopMatrix();
-    fbo_->endCapture();
-
-    glPopAttrib();
-  }
 
   // Render all color buffer attachments into window
   if (show_gui_) {
