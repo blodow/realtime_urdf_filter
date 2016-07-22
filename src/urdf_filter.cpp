@@ -423,9 +423,6 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 void RealtimeURDFFilter::getProjectionMatrix (
     const sensor_msgs::CameraInfo::ConstPtr& info, double* glTf)
 {
-  tf::Vector3 position;
-  tf::Quaternion orientation;
-
 #ifdef USE_OWN_CALIBRATION
   float P[12];
   P[0] = 585.260; P[1] = 0.0;     P[2]  = 317.387; P[3]  = 0.0;
