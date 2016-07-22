@@ -33,8 +33,6 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-#include <bullet/LinearMath/btScalar.h>
-#include <bullet/LinearMath/btMatrix3x3.h>
 // #define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;

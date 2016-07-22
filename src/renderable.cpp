@@ -47,7 +47,6 @@
 #endif
 
 #include <ros/assert.h>
-#include <bullet/LinearMath/btScalar.h>
 
 namespace realtime_urdf_filter
 {
