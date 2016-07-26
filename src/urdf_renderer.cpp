@@ -53,7 +53,6 @@ namespace realtime_urdf_filter
     , tf_(tf)
   {
     initURDFModel ();
-    tf_.setExtrapolationLimit (ros::Duration (5.0));
   }
 
   ////////////////////////////////////////////////////////////////////////////////

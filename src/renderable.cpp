@@ -47,7 +47,6 @@
 #endif
 
 #include <ros/assert.h>
-#include <bullet/LinearMath/btScalar.h>
 
 namespace realtime_urdf_filter
 {
@@ -373,7 +372,7 @@ namespace realtime_urdf_filter
     aiMatrix4x4 transform = node->mTransformation;
     aiMatrix3x3 rotation(transform);
 
-    ROS_INFO_STREAM("  transform: "<<std::endl
+    ROS_DEBUG_STREAM("  transform: "<<std::endl
         <<std::fixed
         <<"[ "<<*transform[0]<<" \t"<<*transform[1]<<" \t"<<*transform[2]<<" \t"<<*transform[3]<<std::endl
         <<"  "<<*transform[4]<<" \t"<<*transform[5]<<" \t"<<*transform[6]<<" \t"<<*transform[7]<<std::endl

@@ -98,7 +98,6 @@ class RealtimeURDFFilter
     image_transport::ImageTransport image_transport_;
     image_transport::CameraSubscriber depth_sub_;
     image_transport::CameraPublisher depth_pub_;
-    image_transport::CameraPublisher depth_pub_raw_;
     image_transport::CameraPublisher mask_pub_;
 
     // rendering objects
