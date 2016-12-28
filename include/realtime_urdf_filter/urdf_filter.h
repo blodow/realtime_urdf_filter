@@ -99,6 +99,7 @@ class RealtimeURDFFilter
     image_transport::CameraSubscriber depth_sub_;
     image_transport::CameraPublisher depth_pub_;
     image_transport::CameraPublisher mask_pub_;
+    image_transport::CameraPublisher robot_mask_pub_;
 
     // rendering objects
     FramebufferObject *fbo_;
@@ -140,6 +141,7 @@ class RealtimeURDFFilter
     // output from rendering
     GLfloat* masked_depth_;
     GLubyte* mask_;
+    GLubyte* robot_mask_;
 };
 
 } // end namespace
