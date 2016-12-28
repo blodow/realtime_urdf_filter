@@ -110,6 +110,7 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
       &RealtimeURDFFilter::filter_callback, this);
   depth_pub_ = image_transport_.advertiseCamera("output_depth", 10);
   mask_pub_ = image_transport_.advertiseCamera("output_mask", 10);
+  robot_mask_pub_ = image_transport_.advertiseCamera("output_robot_mask", 10);
 }
 
 RealtimeURDFFilter::~RealtimeURDFFilter ()
@@ -196,7 +197,7 @@ void RealtimeURDFFilter::filter (
     return;
   }
 
-  if (mask_pub_.getNumSubscribers() > 0) {
+  if (mask_pub_.getNumSubscribers() > 0 || robot_mask_pub_.getNumSubscribers() > 0) {
     need_mask_ = true;
   } else {
     need_mask_ = false;
@@ -301,6 +302,17 @@ void RealtimeURDFFilter::filter_callback
     out_mask.encoding = sensor_msgs::image_encodings::MONO8;
     out_mask.image = mask_image;
     mask_pub_.publish (out_mask.toImageMsg (), camera_info);
+  }
+
+  if (robot_mask_pub_.getNumSubscribers() > 0)
+  {
+    cv::Mat mask_image (height_, width_, CV_8UC1, robot_mask_);
+    cv::threshold(mask_image, mask_image, 254, 255, 0);
+    cv_bridge::CvImage out_mask;
+    out_mask.header = ros_depth_image->header;
+    out_mask.encoding = sensor_msgs::image_encodings::MONO8;
+    out_mask.image = mask_image;
+    robot_mask_pub_.publish (out_mask.toImageMsg (), camera_info);
   }
 }
 
@@ -408,6 +420,7 @@ void RealtimeURDFFilter::initGL ()
   masked_depth_ = (GLfloat*) malloc(width_ * height_ * sizeof(GLfloat));
   // Alocate buffer for the mask (uchar) 
   mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
+  robot_mask_ = (GLubyte*) malloc(width_ * height_ * sizeof(GLubyte));
 }
 
 // set up FBO
@@ -707,6 +720,9 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   {
     fbo_->bind(3);
     glGetTexImage (fbo_->getTextureTarget(), 0, GL_RED, GL_UNSIGNED_BYTE, mask_);
+
+    fbo_->bindDepth();
+    glGetTexImage (fbo_->getTextureTarget(), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, robot_mask_);
   }
 
   // Ok, finished with all OpenGL, let's swap!
