@@ -42,7 +42,7 @@ catkin_package(
   # LIBRARIES urdf_filter shadowwrapper
   )
 
-include_directories(${catkin_INCLUDE_DIR} include)
+include_directories(${catkin_INCLUDE_DIRS} include)
 include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
