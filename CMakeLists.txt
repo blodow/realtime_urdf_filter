@@ -47,12 +47,13 @@ include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
-find_package(OpenNI)
+find_package(PkgConfig)
+pkg_check_modules(PC_LIBOPENNI REQUIRED libopenni)
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_library(freeglut_LIBRARY glut /usr/lib)
 
-include_directories(${OPENGL_INCLUDE_DIR})
+include_directories(${OPENGL_INCLUDE_DIR} ${PC_LIBOPENNI_INCLUDE_DIRS})
 
 find_path( freeglut_INCLUDE_DIR GL/freeglut.h
   /usr/include/GL
@@ -82,7 +83,7 @@ target_link_libraries (urdf_filter
   ${ASSIMP_LIBRARIES})
 
 add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
-target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI ${catkin_LIBRARIES})
+target_link_libraries (urdf_filtered_tracker urdf_filter ${PC_LIBOPENNI_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
 target_link_libraries (realtime_urdf_filter urdf_filter ${catkin_LIBRARIES})
