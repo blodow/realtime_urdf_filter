@@ -36,13 +36,19 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport)
 
 catkin_package(
-#  DEPEND
-  # CATKIN_DEPENDS
+  CATKIN_DEPENDS
+   roscpp
+   nodelet
+   urdf
+   tf
+   resource_retriever
+   cv_bridge
+   image_transport
   INCLUDE_DIRS include
   # LIBRARIES urdf_filter shadowwrapper
   )
 
-include_directories(${catkin_INCLUDE_DIR} include)
+include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
@@ -52,7 +58,7 @@ find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_library(freeglut_LIBRARY glut /usr/lib)
 
-include_directories(${OPENGL_INCLUDE_DIR} ${catkin_INCLUDE_DIR})
+include_directories(${OPENGL_INCLUDE_DIR})
 
 find_path( freeglut_INCLUDE_DIR GL/freeglut.h
   /usr/include/GL
@@ -67,6 +73,7 @@ add_library (FBO src/FrameBufferObject.cpp)
 target_link_libraries (FBO GLEW)
 
 add_library (shaderwrapper src/shader_wrapper.cpp)
+target_link_libraries (shaderwrapper ${catkin_LIBRARIES})
 
 add_library (urdf_filter
   src/urdf_filter.cpp
