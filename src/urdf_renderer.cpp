@@ -134,7 +134,7 @@ namespace realtime_urdf_filter
 
   ////////////////////////////////////////////////////////////////////////////////
   /** \brief loops over all renderables and updates its transforms from TF */
-  void URDFRenderer::update_link_transforms ()
+  void URDFRenderer::update_link_transforms (ros::Time timestamp)
   {
     tf::StampedTransform t;
 
@@ -143,7 +143,7 @@ namespace realtime_urdf_filter
     {
       try
       {
-        tf_.lookupTransform (fixed_frame_, (*it)->name, ros::Time (), t);
+        tf_.lookupTransform (fixed_frame_, (*it)->name, timestamp, t);
       }
       catch (tf::TransformException ex)
       {
@@ -155,9 +155,9 @@ namespace realtime_urdf_filter
 
   ////////////////////////////////////////////////////////////////////////////////
   /** \brief loops over all renderables and renders them to canvas */
-  void URDFRenderer::render ()
+  void URDFRenderer::render (ros::Time timestamp)
   {
-    update_link_transforms ();
+    update_link_transforms (timestamp);
       
     std::vector<std::shared_ptr<Renderable> >::const_iterator it = renderables_.begin ();
     for (; it != renderables_.end (); it++)

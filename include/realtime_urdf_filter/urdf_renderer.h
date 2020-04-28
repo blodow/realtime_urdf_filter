@@ -45,13 +45,13 @@ class URDFRenderer
 { 
   public:
     URDFRenderer (std::string model_description, std::string tf_prefix, std::string cam_frame, std::string fixed_frame, tf::TransformListener &tf);
-    void render ();
+    void render(ros::Time timestamp = ros::Time());
 
   protected:
     void initURDFModel ();
     void loadURDFModel (urdf::Model &descr);
     void process_link (std::shared_ptr<urdf::Link> link);
-    void update_link_transforms ();
+    void update_link_transforms(ros::Time timestamp = ros::Time());
 
     // urdf model stuff
     std::string model_description_;
