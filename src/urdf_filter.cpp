@@ -227,12 +227,12 @@ void RealtimeURDFFilter::filter (
       sum += *it;
     }
 
-    std::cout << "Average framerate: " 
+    ROS_DEBUG_STREAM("Average framerate: "
       << std::setprecision(3) << double(count)/double(now - last) << " Hz " 
       << " (min: "<< min
       << ", max: " << max 
       << ", avg: " << sum / timings.size()
-      << " ms)" << std::endl;
+      << " ms)");
     count = 0;
     last = now;
     timings.clear();
