@@ -39,7 +39,7 @@ catkin_package(
 #  DEPEND
   # CATKIN_DEPENDS
   INCLUDE_DIRS include
-  # LIBRARIES urdf_filter shadowwrapper
+  LIBRARIES urdf_filter
   )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
@@ -110,4 +110,5 @@ endforeach(dir)
 install(FILES include/SamplesConfig.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/include)
 
-# TODO install: include/GL3/gl3.h?
+install(DIRECTORY include/GL3
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
