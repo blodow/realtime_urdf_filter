@@ -78,7 +78,7 @@ namespace realtime_urdf_filter
   void URDFRenderer::loadURDFModel
     (urdf::Model &model)
   {
-    typedef std::vector<boost::shared_ptr<urdf::Link> > V_Link;
+    typedef std::vector<std::shared_ptr<urdf::Link> > V_Link;
     V_Link links;
     model.getLinks(links);
 
@@ -91,30 +91,30 @@ namespace realtime_urdf_filter
 
   ////////////////////////////////////////////////////////////////////////////////
   /** \brief Processes a single URDF link, creates renderable for it */
-  void URDFRenderer::process_link (boost::shared_ptr<urdf::Link> link)
+  void URDFRenderer::process_link (std::shared_ptr<urdf::Link> link)
   {
     if (link->visual.get() == NULL || link->visual->geometry.get() == NULL)
       return;
 
-    boost::shared_ptr<Renderable> r;
+    std::shared_ptr<Renderable> r;
     if (link->visual->geometry->type == urdf::Geometry::BOX)
     {
-      boost::shared_ptr<urdf::Box> box = boost::dynamic_pointer_cast<urdf::Box> (link->visual->geometry);
+      std::shared_ptr<urdf::Box> box = std::dynamic_pointer_cast<urdf::Box> (link->visual->geometry);
       r.reset (new RenderableBox (box->dim.x, box->dim.y, box->dim.z));
     }
     else if (link->visual->geometry->type == urdf::Geometry::CYLINDER)
     {
-      boost::shared_ptr<urdf::Cylinder> cylinder = boost::dynamic_pointer_cast<urdf::Cylinder> (link->visual->geometry);
+      std::shared_ptr<urdf::Cylinder> cylinder = std::dynamic_pointer_cast<urdf::Cylinder> (link->visual->geometry);
       r.reset (new RenderableCylinder (cylinder->radius, cylinder->length));
     }
     else if (link->visual->geometry->type == urdf::Geometry::SPHERE)
     {
-      boost::shared_ptr<urdf::Sphere> sphere = boost::dynamic_pointer_cast<urdf::Sphere> (link->visual->geometry);
+      std::shared_ptr<urdf::Sphere> sphere = std::dynamic_pointer_cast<urdf::Sphere> (link->visual->geometry);
       r.reset (new RenderableSphere (sphere->radius));
     }
     else if (link->visual->geometry->type == urdf::Geometry::MESH)
     {
-      boost::shared_ptr<urdf::Mesh> mesh = boost::dynamic_pointer_cast<urdf::Mesh> (link->visual->geometry);
+      std::shared_ptr<urdf::Mesh> mesh = std::dynamic_pointer_cast<urdf::Mesh> (link->visual->geometry);
       std::string meshname (mesh->filename);
       RenderableMesh* rm = new RenderableMesh (meshname);
       rm->setScale (mesh->scale.x, mesh->scale.y, mesh->scale.z);
@@ -134,16 +134,16 @@ namespace realtime_urdf_filter
 
   ////////////////////////////////////////////////////////////////////////////////
   /** \brief loops over all renderables and updates its transforms from TF */
-  void URDFRenderer::update_link_transforms ()
+  void URDFRenderer::update_link_transforms (ros::Time timestamp)
   {
     tf::StampedTransform t;
 
-    std::vector<boost::shared_ptr<Renderable> >::const_iterator it = renderables_.begin ();
+    std::vector<std::shared_ptr<Renderable> >::const_iterator it = renderables_.begin ();
     for (; it != renderables_.end (); it++)
     {
       try
       {
-        tf_.lookupTransform (fixed_frame_, (*it)->name, ros::Time (), t);
+        tf_.lookupTransform (fixed_frame_, (*it)->name, timestamp, t);
       }
       catch (tf::TransformException ex)
       {
@@ -155,11 +155,11 @@ namespace realtime_urdf_filter
 
   ////////////////////////////////////////////////////////////////////////////////
   /** \brief loops over all renderables and renders them to canvas */
-  void URDFRenderer::render ()
+  void URDFRenderer::render (ros::Time timestamp)
   {
-    update_link_transforms ();
+    update_link_transforms (timestamp);
       
-    std::vector<boost::shared_ptr<Renderable> >::const_iterator it = renderables_.begin ();
+    std::vector<std::shared_ptr<Renderable> >::const_iterator it = renderables_.begin ();
     for (; it != renderables_.end (); it++)
       (*it)->render ();
   }
@@ -169,8 +169,8 @@ namespace realtime_urdf_filter
 // REGEX BASED LINK / SEARCH OPERATIONS / TARGET FRAMES SETUP
 //    for (sop_it = search_operations_.begin (); sop_it != search_operations_.end (); sop_it++)
 //    {
-//      boost::smatch res;
-//      if (boost::regex_match(link->name, res, sop_it->re))
+//      std::smatch res;
+//      if (std::regex_match(link->name, res, sop_it->re))
 //      {
 //        if (!sop_it->pub_topic_re.empty ())
 //        {
@@ -184,9 +184,9 @@ namespace realtime_urdf_filter
 //        double r,p,y;
 //
 //        // handle special case of fixed links of drawers
-//        boost::shared_ptr<urdf::Collision> c;
-//        boost::regex re (".*_fixed_link");
-//        if (boost::regex_match(link->name, re))
+//        std::shared_ptr<urdf::Collision> c;
+//        std::regex re (".*_fixed_link");
+//        if (std::regex_match(link->name, re))
 //        {
 //          c = link->child_links[0]->collision;
 //

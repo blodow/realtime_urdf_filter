@@ -35,6 +35,7 @@
 #include <tf/tf.h>
 // this is necessary for diamondback. for more recent ROS versions, use:
 // #include <urdf_interface/color.h>
+#define ParseError std::runtime_error
 #include <urdf_model/color.h>
 
 #if defined(ASSIMP_UNIFIED_HEADER_NAMES)

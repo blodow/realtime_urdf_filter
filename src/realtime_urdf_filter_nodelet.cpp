@@ -32,7 +32,7 @@
 #include <pluginlib/class_list_macros.h>
 
 // watch the capitalization carefully
-PLUGINLIB_DECLARE_CLASS(realtime_urdf_filter, RealtimeURDFFilterNodelet, realtime_urdf_filter::RealtimeURDFFilterNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(realtime_urdf_filter::RealtimeURDFFilterNodelet, nodelet::Nodelet);
 
 namespace realtime_urdf_filter
 {

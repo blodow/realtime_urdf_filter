@@ -178,7 +178,7 @@ double RealtimeURDFFilter::getTime ()
 }
 
 void RealtimeURDFFilter::filter (
-    unsigned char* buffer, double* projection_matrix, int width, int height)
+    unsigned char* buffer, double* projection_matrix, int width, int height, ros::Time timestamp)
 {
   static std::vector<double> timings;
   double begin = getTime();
@@ -207,7 +207,7 @@ void RealtimeURDFFilter::filter (
   textureBufferFromDepthBuffer(buffer, size_in_bytes);
 
   // render everything
-  this->render(projection_matrix);
+  this->render(projection_matrix, timestamp);
 
   // Timing
   static unsigned count = 0;
@@ -227,12 +227,12 @@ void RealtimeURDFFilter::filter (
       sum += *it;
     }
 
-    std::cout << "Average framerate: " 
+    ROS_DEBUG_STREAM("Average framerate: "
       << std::setprecision(3) << double(count)/double(now - last) << " Hz " 
       << " (min: "<< min
       << ", max: " << max 
       << ", avg: " << sum / timings.size()
-      << " ms)" << std::endl;
+      << " ms)");
     count = 0;
     last = now;
     timings.clear();
@@ -246,7 +246,6 @@ void RealtimeURDFFilter::filter_callback
 {
   // Debugging
   ROS_DEBUG_STREAM("Received image with camera info: "<<*camera_info);
-
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
   cv::Mat depth_image;
@@ -274,7 +273,7 @@ void RealtimeURDFFilter::filter_callback
   getProjectionMatrix (camera_info, projection_matrix);
 
   // Filter the image
-  this->filter(buffer, projection_matrix, depth_image.cols, depth_image.rows);
+  this->filter(buffer, projection_matrix, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp);
 
   // publish processed depth image and image mask
   if (depth_pub_.getNumSubscribers() > 0)
@@ -295,7 +294,6 @@ void RealtimeURDFFilter::filter_callback
   if (mask_pub_.getNumSubscribers() > 0)
   {
     cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
-
     cv_bridge::CvImage out_mask;
     out_mask.header = ros_depth_image->header;
     out_mask.encoding = sensor_msgs::image_encodings::MONO8;
@@ -475,7 +473,7 @@ void RealtimeURDFFilter::getProjectionMatrix (
   glTf[11]= -1;
 }
 
-void RealtimeURDFFilter::render (const double* camera_projection_matrix)
+void RealtimeURDFFilter::render (const double* camera_projection_matrix, ros::Time timestamp)
 {   
   static const GLenum buffers[] = {
     GL_COLOR_ATTACHMENT0,
@@ -494,7 +492,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   // get transformation from camera to "fixed frame"
   tf::StampedTransform camera_transform;
   try {
-    tf_.lookupTransform (cam_frame_, fixed_frame_, ros::Time (), camera_transform);
+    tf_.lookupTransform (cam_frame_, fixed_frame_, timestamp, camera_transform);
     ROS_DEBUG_STREAM("Camera to world translation "<<
         cam_frame_<<" -> "<<fixed_frame_<<
         " ["<<
@@ -609,7 +607,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix)
   // render every renderable / urdf model
   std::vector<URDFRenderer*>::const_iterator r;
   for (r = renderers_.begin (); r != renderers_.end (); r++) {
-    (*r)->render ();
+    (*r)->render (timestamp);
   }
 
   // Disable shader

@@ -39,20 +39,21 @@ catkin_package(
 #  DEPEND
   # CATKIN_DEPENDS
   INCLUDE_DIRS include
-  # LIBRARIES urdf_filter shadowwrapper
+  LIBRARIES urdf_filter
   )
 
-include_directories(${catkin_INCLUDE_DIR} include)
+include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
-find_package(OpenNI)
+find_package(PkgConfig)
+pkg_check_modules(PC_LIBOPENNI REQUIRED libopenni)
 find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_library(freeglut_LIBRARY glut /usr/lib)
 
-include_directories(${OPENGL_INCLUDE_DIR} ${catkin_INCLUDE_DIR})
+include_directories(${OPENGL_INCLUDE_DIR} ${PC_LIBOPENNI_INCLUDE_DIRS})
 
 find_path( freeglut_INCLUDE_DIR GL/freeglut.h
   /usr/include/GL
@@ -82,7 +83,7 @@ target_link_libraries (urdf_filter
   ${ASSIMP_LIBRARIES})
 
 add_executable (urdf_filtered_tracker src/urdf_filtered_tracker.cpp)
-target_link_libraries (urdf_filtered_tracker urdf_filter OpenNI ${catkin_LIBRARIES})
+target_link_libraries (urdf_filtered_tracker urdf_filter ${PC_LIBOPENNI_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable (realtime_urdf_filter src/realtime_urdf_filter.cpp)
 target_link_libraries (realtime_urdf_filter urdf_filter ${catkin_LIBRARIES})
@@ -110,4 +111,5 @@ endforeach(dir)
 install(FILES include/SamplesConfig.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/include)
 
-# TODO install: include/GL3/gl3.h?
+install(DIRECTORY include/GL3
+  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
