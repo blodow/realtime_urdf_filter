@@ -50,7 +50,7 @@ class URDFRenderer
   protected:
     void initURDFModel ();
     void loadURDFModel (urdf::Model &descr);
-    void process_link (boost::shared_ptr<urdf::Link> link);
+    void process_link (std::shared_ptr<urdf::Link> link);
     void update_link_transforms ();
 
     // urdf model stuff
@@ -62,7 +62,7 @@ class URDFRenderer
     std::string fixed_frame_;
    
     // rendering stuff 
-    std::vector<boost::shared_ptr<Renderable> > renderables_;
+    std::vector<std::shared_ptr<Renderable> > renderables_;
     tf::TransformListener &tf_;
 };
 

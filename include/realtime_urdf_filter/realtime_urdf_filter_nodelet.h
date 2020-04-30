@@ -45,6 +45,6 @@ namespace realtime_urdf_filter
     std::vector<std::string> args_;
     unsigned int argc_;
     char** argv_;
-    boost::shared_ptr<realtime_urdf_filter::RealtimeURDFFilter> filter_;
+    std::shared_ptr<realtime_urdf_filter::RealtimeURDFFilter> filter_;
   };
 }
