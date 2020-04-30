@@ -42,7 +42,7 @@ catkin_package(
   # LIBRARIES urdf_filter shadowwrapper
   )
 
-include_directories(${catkin_INCLUDE_DIR} include)
+include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(SYSTEM ${ASSIMP_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS} ${ASSIMP_LIBRARY_DIRS})
 
@@ -52,7 +52,7 @@ find_package(OpenCV REQUIRED)
 find_package(OpenGL)
 find_library(freeglut_LIBRARY glut /usr/lib)
 
-include_directories(${OPENGL_INCLUDE_DIR} ${catkin_INCLUDE_DIR})
+include_directories(${OPENGL_INCLUDE_DIR})
 
 find_path( freeglut_INCLUDE_DIR GL/freeglut.h
   /usr/include/GL
