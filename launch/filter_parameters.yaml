@@ -3,7 +3,7 @@ camera_frame: /camera_rgb_optical_frame
 camera_offset:
   translation: [0.0, 0.0, 0.0]
   rotation:    [0.0, 0.0, 0.0, 1.0]
-# There is one entry for each URDIF that should be filtered
+# There is one entry for each URDF that should be filtered
 models:
 - model: "robot_description"
   tf_prefix: "/EXAMPLE"
