@@ -3,6 +3,8 @@ project(realtime_urdf_filter)
 
 set(OpenGL_GL_PREFERENCE "GLVND")
 
+set(CMAKE_POLICY_DEFAULT_CMP0012 NEW)
+
 find_package(ASSIMP QUIET)
 if (NOT ASSIMP_FOUND)
   find_package(PkgConfig REQUIRED)
