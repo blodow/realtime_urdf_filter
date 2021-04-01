@@ -17,7 +17,7 @@ Example of robot self filtering to proprocess for human skeleton tracking:
 <img src="images/tracker.png" alt="Tracker Preprocessing" style="width: 320px;"/>
 
 Robot self filtering for object manipulation:
-   
+
 <img src="images/grasping.png" alt="Robot Self Filtering" style="width: 320px;"/>
 
 <img src="images/rviz.png" alt="Robot Self Filtering" style="max-width: 50 %;"/>
@@ -137,7 +137,7 @@ In that case, a simple work around (read: "hack") is to replace the "solid"
 with "rolid", and assimp loads it as a binary file.
 
 ```
-    printf 'r' | dd of=bad_stl_file.STL bs=1 seek=0 count=1 conv=notrunc 
+    printf 'r' | dd of=bad_stl_file.STL bs=1 seek=0 count=1 conv=notrunc
 ```
 
 I'm not exactly sure why RViz does not seem to have this problem.

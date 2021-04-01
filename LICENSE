@@ -10,8 +10,8 @@ modification, are permitted provided that the following conditions are met:
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
     * Neither the name of the Intelligent Autonomous Systems Group/
-      Technische Universitaet Muenchen nor the names of its contributors 
-      may be used to endorse or promote products derived from this software 
+      Technische Universitaet Muenchen nor the names of its contributors
+      may be used to endorse or promote products derived from this software
       without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -28,8 +28,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 
-The Frame Buffer Object Class in FrameBufferObject(.cpp|.h) is (c) Gordon 
-Wetzstein (see http://web.media.mit.edu/~gordonw/OpenGL/index.php ), and is 
+The Frame Buffer Object Class in FrameBufferObject(.cpp|.h) is (c) Gordon
+Wetzstein (see http://web.media.mit.edu/~gordonw/OpenGL/index.php ), and is
 based on Mark Harris' RenderTexture class (see
 http://www.markmark.net/misc/rendertexture.html ). Only minor cosmetic
 changes were done to fix compilation warnings under Linux and to support

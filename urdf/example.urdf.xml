@@ -1,6 +1,6 @@
 <robot name="example">
     <link name="world"/>
-    <link name="wall1"> 
+    <link name="wall1">
         <visual>
             <geometry>
                 <box size="4 0.5 2" />

@@ -134,7 +134,7 @@ You can double check with e.g.:
 In that case, a simple work around (read: "hack") is to replace the "solid"
 with "rolid", and assimp loads it as a binary file.
 
-    printf 'r' | dd of=bad_stl_file.STL bs=1 seek=0 count=1 conv=notrunc 
+    printf 'r' | dd of=bad_stl_file.STL bs=1 seek=0 count=1 conv=notrunc
 
 I'm not exactly sure why RViz does not seem to have this problem.
 

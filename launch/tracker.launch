@@ -5,13 +5,13 @@
     <node pkg="tf" type="static_transform_publisher" name="wall1_transform_publisher" args="1.5  -1.5 1 0.785398163  0 0 /floor /wall1 1000" />
     <node pkg="tf" type="static_transform_publisher" name="wall2_transform_publisher" args="-1.5 -1.2 1 -0.785398163 0 0 /floor /wall2 1000" />
 
-    <node pkg="realtime_urdf_filter" type="urdf_filtered_tracker" name="urdf_filtered_tracker" output="screen"> 
+    <node pkg="realtime_urdf_filter" type="urdf_filtered_tracker" name="urdf_filtered_tracker" output="screen">
 
     <remap from="~output" to="/self_filtered_depth_image" />
     <remap from="~output_mask" to="/self_filtered_mask" />
-    
+
     <!-- remap from="/tf_human" to="/tf"/ -->
-    
+
     <rosparam command="load" file="$(find realtime_urdf_filter)/launch/filter_parameters.yaml"/>
   </node>
 </launch>

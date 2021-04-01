@@ -1,20 +1,20 @@
-/* 
+/*
  * Copyright (c) 2011, Nico Blodow <blodow@cs.tum.edu>
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
  *     * Neither the name of the Intelligent Autonomous Systems Group/
- *       Technische Universitaet Muenchen nor the names of its contributors 
- *       may be used to endorse or promote products derived from this software 
+ *       Technische Universitaet Muenchen nor the names of its contributors
+ *       may be used to endorse or promote products derived from this software
  *       without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -132,32 +132,32 @@ namespace realtime_urdf_filter
 
   void RenderableBox::createBoxVBO ()
   {
-    const GLfloat boxvertices[] = 
+    const GLfloat boxvertices[] =
       {0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Top Right Of The Quad (Top)
       -0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Top Left Of The Quad (Top)
       -0.5f * dimx, 0.5f * dimy, 0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Bottom Left Of The Quad (Top)
        0.5f * dimx, 0.5f * dimy, 0.5f * dimz, 0.0f, 1.0f, 0.0f,          // Bottom Right Of The Quad (Top)
-      
+
        0.5f * dimx,-0.5f * dimy, 0.5f * dimz, 0.0f,-1.0f, 0.0f,          // Top Right Of The Quad (Bottom)
       -0.5f * dimx,-0.5f * dimy, 0.5f * dimz, 0.0f,-1.0f, 0.0f,          // Top Left Of The Quad (Bottom)
       -0.5f * dimx,-0.5f * dimy,-0.5f * dimz, 0.0f,-1.0f, 0.0f,          // Bottom Left Of The Quad (Bottom)
        0.5f * dimx,-0.5f * dimy,-0.5f * dimz, 0.0f,-1.0f, 0.0f,          // Bottom Right Of The Quad (Bottom)
-      
+
        0.5f * dimx, 0.5f * dimy, 0.5f * dimz, 0.0f, 0.0f, 1.0f,          // Top Right Of The Quad (Front)
       -0.5f * dimx, 0.5f * dimy, 0.5f * dimz, 0.0f, 0.0f, 1.0f,          // Top Left Of The Quad (Front)
       -0.5f * dimx,-0.5f * dimy, 0.5f * dimz, 0.0f, 0.0f, 1.0f,          // Bottom Left Of The Quad (Front)
        0.5f * dimx,-0.5f * dimy, 0.5f * dimz, 0.0f, 0.0f, 1.0f,          // Bottom Right Of The Quad (Front)
-      
+
        0.5f * dimx,-0.5f * dimy,-0.5f * dimz, 0.0f, 0.0f,-1.0f,          // Top Right Of The Quad (Back)
       -0.5f * dimx,-0.5f * dimy,-0.5f * dimz, 0.0f, 0.0f,-1.0f,          // Top Left Of The Quad (Back)
       -0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 0.0f,-1.0f,          // Bottom Left Of The Quad (Back)
        0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 0.0f, 0.0f,-1.0f,          // Bottom Right Of The Quad (Back)
-      
+
       -0.5f * dimx, 0.5f * dimy, 0.5f * dimz,-1.0f, 0.0f, 0.0f,          // Top Right Of The Quad (Left)
       -0.5f * dimx, 0.5f * dimy,-0.5f * dimz,-1.0f, 0.0f, 0.0f,          // Top Left Of The Quad (Left)
       -0.5f * dimx,-0.5f * dimy,-0.5f * dimz,-1.0f, 0.0f, 0.0f,          // Bottom Left Of The Quad (Left)
       -0.5f * dimx,-0.5f * dimy, 0.5f * dimz,-1.0f, 0.0f, 0.0f,          // Bottom Right Of The Quad (Left)
-      
+
        0.5f * dimx, 0.5f * dimy,-0.5f * dimz, 1.0f, 0.0f, 0.0f,          // Top Right Of The Quad (Right)
        0.5f * dimx, 0.5f * dimy, 0.5f * dimz, 1.0f, 0.0f, 0.0f,          // Top Left Of The Quad (Right)
        0.5f * dimx,-0.5f * dimy, 0.5f * dimz, 1.0f, 0.0f, 0.0f,          // Bottom Left Of The Quad (Right)
@@ -259,14 +259,14 @@ namespace realtime_urdf_filter
       // resource_retriever needs a way of checking for existence
       // TODO: cache this
       resource_retriever::MemoryResource res;
-      try 
-      {   
+      try
+      {
         res = retriever_.get(file);
-      }   
+      }
       catch (resource_retriever::Exception& e)
-      {   
+      {
         return false;
-      }   
+      }
 
       return true;
     }
@@ -285,14 +285,14 @@ namespace realtime_urdf_filter
       // Ugly -- two retrievals where there should be one (Exists + Open)
       // resource_retriever needs a way of checking for existence
       resource_retriever::MemoryResource res;
-      try 
-      {   
+      try
+      {
         res = retriever_.get(file);
-      }   
+      }
       catch (resource_retriever::Exception& e)
-      {   
+      {
         return 0;
-      }   
+      }
 
       return new ResourceIOStream(res);
     }
@@ -387,7 +387,7 @@ namespace realtime_urdf_filter
       aiVector3D pos = mesh->mVertices[i];
       aiVector3D n = mesh->mNormals[i];
       // TODO: const aiVector3D* pTexCoord = mesh->HasTextureCoords(0) ? &(mesh->mTextureCoords[0][i]) : &Zero3D;
-      
+
       // FIXME: Some .dae files are not processed properly by this function
       // Transform the positions and normals appropriately
       // The following does not do the right transform
