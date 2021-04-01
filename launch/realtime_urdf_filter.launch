@@ -20,7 +20,7 @@
   </node>
 
   <!-- Load an example URDF -->
-  <param name="robot_description" command="$(find xacro)/xacro.py '$(find realtime_urdf_filter)/urdf/example.urdf.xml'"/>
+  <param name="robot_description" command="$(find xacro)/xacro '$(find realtime_urdf_filter)/urdf/example.urdf.xml'"/>
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher">
     <param name="tf_prefix" value="EXAMPLE"/>
