@@ -10,9 +10,9 @@ long as TF latency is not too high.
 Incoming Kinect frames are transferred to the GPU as textures, and the scene is
 rendered from the same point of view. As a result, we can access the measured
 as well as the virtual depth map in the shader, where we can define efficient
-comparision operations.
+comparison operations.
 
-Example of robot self filtering to proprocess for human skeleton tracking:
+Example of robot self filtering to preprocess for human skeleton tracking:
 
 <img src="images/tracker.png" alt="Tracker Preprocessing" style="width: 320px;"/>
 
@@ -32,7 +32,7 @@ This package requires the following: 3rd party libraries
  - GLSL (GL Shader Language) version 1.40 support or greater
  - GLEW (GL Extension Wrangler) version 1.6
 
-NOTE: Trying to use thie package with GLEW 1.5 wil result in a segmentation fault.
+NOTE: Trying to use this package with GLEW 1.5 will result in a segmentation fault.
 
 ROS Interface
 -------------
@@ -73,7 +73,7 @@ The following `rosparam` parameters are supported:
 
 - `fixed_frame` is used to specify the "fixed" TF link (e.g. `/map`,
   `/world`, etc.). This is useful to decouple tf lookups with different
-  publising frequencies, e.g. robot and static publishers.
+  publishing frequencies, e.g. robot and static publishers.
 - `camera_frame` specifies the camera TF frame (e.g.
   `/camera_rgb_optical_frame`)
 - `camera_offset` lets you specify additional offsets to the camera link. It
@@ -118,7 +118,7 @@ following can be launched from remote::
 Troubleshooting
 ---------------
 
-Every once in a while, assimp fails when importing STL files. If the first 5
+Every once in a while, Assimp fails when importing STL files. If the first 5
 bytes are "solid", it treats it as ASCII, however there are several binary STL
 files around that start with "solid". You'll get an error message along the
 lines of:
