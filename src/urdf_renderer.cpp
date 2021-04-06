@@ -147,7 +147,7 @@ namespace realtime_urdf_filter
       }
       catch (tf::TransformException ex)
       {
-        ROS_ERROR("%s",ex.what());
+        ROS_DEBUG_STREAM(ex.what());
       }
       (*it)->link_to_fixed = tf::Transform (t.getRotation (), t.getOrigin ());
     }
