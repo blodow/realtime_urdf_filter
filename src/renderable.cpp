@@ -93,7 +93,7 @@ namespace realtime_urdf_filter
   {
     applyTransform ();
     glTranslatef (0, 0, -length/2);
-    //glutSolidCylinder(radius, length, 10, 10);
+    glutSolidCylinder(radius, length, 10, 10);
     unapplyTransform ();
   }
 
@@ -125,8 +125,8 @@ namespace realtime_urdf_filter
     glDisableClientState( GL_VERTEX_ARRAY );          // Disable Vertex Arrays
     glDisableClientState( GL_NORMAL_ARRAY );       // Disable Texture Coord Arrays
 
-    //glScalef (dimx, dimy, dimz);
-    //glutSolidCube (dimx);
+    glScalef (dimx, dimy, dimz);
+    glutSolidCube (dimx);
     unapplyTransform ();
   }
 
