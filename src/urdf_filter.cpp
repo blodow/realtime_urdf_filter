@@ -53,56 +53,59 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   , argc_ (argc), argv_(argv)
 {
   // get fixed frame name
-  XmlRpc::XmlRpcValue v;
-  nh_.getParam ("fixed_frame", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeString && "fixed_frame paramter!");
-  fixed_frame_ = (std::string)v;
+  if (!nh_.getParam ("fixed_frame", fixed_frame_))
+  {
+    ROS_FATAL ("fixed_frame paramter!");
+  }
   ROS_INFO ("using fixed frame %s", fixed_frame_.c_str ());
 
   // get camera frame name
   // we do not read this from ROS message, for being able to run this within openni (self filtered tracker..)
-  nh_.getParam ("camera_frame", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeString && "need a camera_frame paramter!");
-  cam_frame_ = (std::string)v;
+  if (!nh_.getParam ("camera_frame", cam_frame_))
+  {
+    ROS_FATAL ("need a camera_frame paramter!");
+  }
   ROS_INFO ("using camera frame %s", cam_frame_.c_str ());
 
-  // read additional camera offset (TODO: make optional)
-  nh_.getParam ("camera_offset", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeStruct && "need a camera_offset paramter!");
-  ROS_ASSERT (v.hasMember ("translation") && v.hasMember ("rotation") && "camera offset needs a translation and rotation parameter!");
+  // read additional camera offset
+  XmlRpc::XmlRpcValue v;
+  if (nh_.getParam ("camera_offset", v))
+  {
+    ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeStruct && "need a camera_offset paramter!");
+    ROS_ASSERT (v.hasMember ("translation") && v.hasMember ("rotation") && "camera offset needs a translation and rotation parameter!");
 
-  // translation
-  XmlRpc::XmlRpcValue vec = v["translation"];
-  ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 3 && "camera_offset.translation parameter must be a 3-value array!");
-  ROS_INFO ("using camera translational offset: %f %f %f",
-      (double)(vec[0]),
-      (double)(vec[1]),
-      (double)(vec[2])
-      );
-  camera_offset_t_ = tf::Vector3((double)vec[0], (double)vec[1], (double)vec[2]);
+    // translation
+    XmlRpc::XmlRpcValue vec = v["translation"];
+    ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 3 && "camera_offset.translation parameter must be a 3-value array!");
+    camera_offset_t_ = tf::Vector3((double)vec[0], (double)vec[1], (double)vec[2]);
 
-  // rotation
-  vec = v["rotation"];
-  ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 4 && "camera_offset.rotation parameter must be a 4-value array [x y z w]!");
-  ROS_INFO ("using camera rotational offset: %f %f %f %f", (double)vec[0], (double)vec[1], (double)vec[2], (double)vec[3]);
-  camera_offset_q_ = tf::Quaternion((double)vec[0], (double)vec[1], (double)vec[2], (double)vec[3]);
+    // rotation
+    vec = v["rotation"];
+    ROS_ASSERT (vec.getType() == XmlRpc::XmlRpcValue::TypeArray && vec.size() == 4 && "camera_offset.rotation parameter must be a 4-value array [x y z w]!");
+    camera_offset_q_ = tf::Quaternion((double)vec[0], (double)vec[1], (double)vec[2], (double)vec[3]);
+  }
+  else {
+    // identity transform
+    camera_offset_t_ = tf::Vector3(0, 0, 0);
+    camera_offset_q_ = tf::Quaternion::getIdentity();
+  }
+
+  ROS_INFO ("using camera translational offset: %f %f %f", camera_offset_t_[0], camera_offset_t_[1], camera_offset_t_[2]);
+  ROS_INFO ("using camera rotational offset: %f %f %f %f", camera_offset_q_.x(), camera_offset_q_.y(),camera_offset_q_.z(),camera_offset_q_.w());
 
   // depth distance threshold (how far from the model are points still deleted?)
-  nh_.getParam ("depth_distance_threshold", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeDouble && "need a depth_distance_threshold paramter!");
-  depth_distance_threshold_ = (double)v;
+  if (!nh_.getParam ("depth_distance_threshold", depth_distance_threshold_))
+  {
+    ROS_FATAL ("need a depth_distance_threshold paramter!");
+  }
   ROS_INFO ("using depth distance threshold %f", depth_distance_threshold_);
 
   // depth distance threshold (how far from the model are points still deleted?)
-  nh_.getParam ("show_gui", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeBoolean && "need a show_gui paramter!");
-  show_gui_ = (bool)v;
+  nh_.param<bool> ("show_gui", show_gui_, false);
   ROS_INFO ("showing gui / visualization: %s", (show_gui_?"ON":"OFF"));
 
   // fitler replace value
-  nh_.getParam ("filter_replace_value", v);
-  ROS_ASSERT (v.getType() == XmlRpc::XmlRpcValue::TypeDouble && "need a filter_replace_value paramter!");
-  filter_replace_value_ = (double)v;
+  nh_.param<double> ("filter_replace_value", filter_replace_value_, 0);
   ROS_INFO ("using filter replace value %f", filter_replace_value_);
 
   // setup publishers
