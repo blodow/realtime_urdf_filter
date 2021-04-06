@@ -44,7 +44,7 @@ namespace realtime_urdf_filter
 class URDFRenderer
 {
   public:
-    URDFRenderer (std::string model_description, std::string tf_prefix, std::string cam_frame, std::string fixed_frame, tf::TransformListener &tf);
+    URDFRenderer (std::string model_description, std::string tf_prefix, std::string cam_frame, std::string fixed_frame, tf::TransformListener &tf, const std::string &geometry_type);
     void render(ros::Time timestamp = ros::Time());
 
   protected:
@@ -56,6 +56,7 @@ class URDFRenderer
     // urdf model stuff
     std::string model_description_;
     std::string tf_prefix_;
+    const std::string geometry_type;
 
     // camera stuff
     std::string camera_frame_;

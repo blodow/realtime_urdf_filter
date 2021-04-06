@@ -134,8 +134,8 @@ void RealtimeURDFFilter::loadModels ()
       XmlRpc::XmlRpcValue elem = v[i];
       ROS_ASSERT (elem.getType()  == XmlRpc::XmlRpcValue::TypeStruct);
 
-      std::string description_param = elem["model"];
-      std::string tf_prefix = elem["tf_prefix"];
+      const std::string description_param = elem["model"];
+      const std::string tf_prefix = elem["tf_prefix"];
 
       // read URDF model
       std::string content;
@@ -163,7 +163,7 @@ void RealtimeURDFFilter::loadModels ()
 
       // finally, set the model description so we can later parse it.
       ROS_INFO ("Loading URDF model: %s", description_param.c_str ());
-      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_));
+      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_, elem["geometry_type"]));
     }
   }
   else

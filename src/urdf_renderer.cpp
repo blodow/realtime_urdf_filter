@@ -45,9 +45,11 @@ namespace realtime_urdf_filter
                               std::string tf_prefix,
                               std::string cam_frame,
                               std::string fixed_frame,
-                              tf::TransformListener &tf)
+                              tf::TransformListener &tf,
+                              const std::string &geometry_type)
     : model_description_(model_description)
     , tf_prefix_(tf_prefix)
+    , geometry_type(geometry_type)
     , camera_frame_ (cam_frame)
     , fixed_frame_(fixed_frame)
     , tf_(tf)
@@ -93,39 +95,57 @@ namespace realtime_urdf_filter
   /** \brief Processes a single URDF link, creates renderable for it */
   void URDFRenderer::process_link (std::shared_ptr<urdf::Link> link)
   {
-    if (link->visual.get() == NULL || link->visual->geometry.get() == NULL)
-      return;
+    urdf::Pose origin;
+    urdf::GeometryConstSharedPtr geometry;
+
+    if (geometry_type.empty() || geometry_type == "visual")
+    {
+      if (link->visual == nullptr) { return; }
+      origin = link->visual->origin;
+      geometry = link->visual->geometry;
+    }
+    else if (geometry_type == "collision")
+    {
+      if (link->collision == nullptr) { return; }
+      origin = link->collision->origin;
+      geometry = link->collision->geometry;
+    }
+    else
+    {
+      ROS_FATAL_STREAM("invalid geometry type: " + geometry_type);
+    }
+
+    if (geometry == nullptr) { return; }
 
     std::shared_ptr<Renderable> r;
-    if (link->visual->geometry->type == urdf::Geometry::BOX)
+    if (geometry->type == urdf::Geometry::BOX)
     {
-      std::shared_ptr<urdf::Box> box = std::dynamic_pointer_cast<urdf::Box> (link->visual->geometry);
+      urdf::BoxConstSharedPtr box = std::dynamic_pointer_cast<const urdf::Box> (geometry);
       r.reset (new RenderableBox (box->dim.x, box->dim.y, box->dim.z));
     }
-    else if (link->visual->geometry->type == urdf::Geometry::CYLINDER)
+    else if (geometry->type == urdf::Geometry::CYLINDER)
     {
-      std::shared_ptr<urdf::Cylinder> cylinder = std::dynamic_pointer_cast<urdf::Cylinder> (link->visual->geometry);
+      urdf::CylinderConstSharedPtr cylinder = std::dynamic_pointer_cast<const urdf::Cylinder> (geometry);
       r.reset (new RenderableCylinder (cylinder->radius, cylinder->length));
     }
-    else if (link->visual->geometry->type == urdf::Geometry::SPHERE)
+    else if (geometry->type == urdf::Geometry::SPHERE)
     {
-      std::shared_ptr<urdf::Sphere> sphere = std::dynamic_pointer_cast<urdf::Sphere> (link->visual->geometry);
+      urdf::SphereConstSharedPtr sphere = std::dynamic_pointer_cast<const urdf::Sphere> (geometry);
       r.reset (new RenderableSphere (sphere->radius));
     }
-    else if (link->visual->geometry->type == urdf::Geometry::MESH)
+    else if (geometry->type == urdf::Geometry::MESH)
     {
-      std::shared_ptr<urdf::Mesh> mesh = std::dynamic_pointer_cast<urdf::Mesh> (link->visual->geometry);
-      std::string meshname (mesh->filename);
-      RenderableMesh* rm = new RenderableMesh (meshname);
+      urdf::MeshConstSharedPtr mesh = std::dynamic_pointer_cast<const urdf::Mesh> (geometry);
+      RenderableMesh* rm = new RenderableMesh (mesh->filename);
       rm->setScale (mesh->scale.x, mesh->scale.y, mesh->scale.z);
       r.reset (rm);
     }
     r->setLinkName (tf_prefix_+ "/" + link->name);
-    urdf::Vector3 origin = link->visual->origin.position;
-    urdf::Rotation rotation = link->visual->origin.rotation;
+    urdf::Vector3 position = origin.position;
+    urdf::Rotation rotation = origin.rotation;
     r->link_offset = tf::Transform (
         tf::Quaternion (rotation.x, rotation.y, rotation.z, rotation.w).normalize (),
-        tf::Vector3 (origin.x, origin.y, origin.z));
+        tf::Vector3 (position.x, position.y, position.z));
     if (link->visual &&
         (link->visual->material))
       r->color  = link->visual->material->color;
