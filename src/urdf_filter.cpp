@@ -161,9 +161,11 @@ void RealtimeURDFFilter::loadModels ()
         continue;
       }
 
+      const double scale = elem.hasMember("scale") ? double(elem["scale"]) : 1.0;
+
       // finally, set the model description so we can later parse it.
       ROS_INFO ("Loading URDF model: %s", description_param.c_str ());
-      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_, elem["geometry_type"]));
+      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_, elem["geometry_type"], scale));
     }
   }
   else

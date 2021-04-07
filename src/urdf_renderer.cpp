@@ -46,10 +46,12 @@ namespace realtime_urdf_filter
                               std::string cam_frame,
                               std::string fixed_frame,
                               tf::TransformListener &tf,
-                              const std::string &geometry_type)
+                              const std::string &geometry_type,
+                              double scale)
     : model_description_(model_description)
     , tf_prefix_(tf_prefix)
     , geometry_type(geometry_type)
+    , scale(scale)
     , camera_frame_ (cam_frame)
     , fixed_frame_(fixed_frame)
     , tf_(tf)
@@ -132,22 +134,22 @@ namespace realtime_urdf_filter
       if (geometry->type == urdf::Geometry::BOX)
       {
         const urdf::BoxConstSharedPtr box = std::dynamic_pointer_cast<const urdf::Box> (geometry);
-        r = std::make_shared<RenderableBox>(box->dim.x, box->dim.y, box->dim.z);
+        r = std::make_shared<RenderableBox>(scale * box->dim.x, scale * box->dim.y, scale * box->dim.z);
       }
       else if (geometry->type == urdf::Geometry::CYLINDER)
       {
         const urdf::CylinderConstSharedPtr cylinder = std::dynamic_pointer_cast<const urdf::Cylinder> (geometry);
-        r = std::make_shared<RenderableCylinder>(cylinder->radius, cylinder->length);
+        r = std::make_shared<RenderableCylinder>(scale * cylinder->radius, scale * cylinder->length);
       }
       else if (geometry->type == urdf::Geometry::SPHERE)
       {
         const urdf::SphereConstSharedPtr sphere = std::dynamic_pointer_cast<const urdf::Sphere> (geometry);
-        r = std::make_shared<RenderableSphere>(sphere->radius);
+        r = std::make_shared<RenderableSphere>(scale * sphere->radius);
       }
       else if (geometry->type == urdf::Geometry::MESH)
       {
         const urdf::MeshConstSharedPtr mesh = std::dynamic_pointer_cast<const urdf::Mesh> (geometry);
-        r = std::make_shared<RenderableMesh>(mesh->filename, mesh->scale.x, mesh->scale.y, mesh->scale.z);
+        r = std::make_shared<RenderableMesh>(mesh->filename, scale * mesh->scale.x, scale * mesh->scale.y, scale * mesh->scale.z);
       }
       r->setLinkName (tf_prefix_+ "/" + link->name);
       const urdf::Vector3 position = origin.position;
