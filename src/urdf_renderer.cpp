@@ -95,61 +95,70 @@ namespace realtime_urdf_filter
   /** \brief Processes a single URDF link, creates renderable for it */
   void URDFRenderer::process_link (std::shared_ptr<urdf::Link> link)
   {
-    urdf::Pose origin;
-    urdf::GeometryConstSharedPtr geometry;
+    std::vector<urdf::Pose> origins;
+    std::vector<urdf::GeometryConstSharedPtr> geometries;
+    std::vector<urdf::MaterialConstSharedPtr> materials;
 
     if (geometry_type.empty() || geometry_type == "visual")
     {
-      if (link->visual == nullptr) { return; }
-      origin = link->visual->origin;
-      geometry = link->visual->geometry;
+      for (const auto &visual : link->visual_array)
+      {
+        origins.push_back(visual->origin);
+        geometries.push_back(visual->geometry);
+        materials.push_back(visual->material);
+      }
     }
     else if (geometry_type == "collision")
     {
-      if (link->collision == nullptr) { return; }
-      origin = link->collision->origin;
-      geometry = link->collision->geometry;
+      for (const auto &collision : link->collision_array)
+      {
+        origins.push_back(collision->origin);
+        geometries.push_back(collision->geometry);
+        materials.push_back(nullptr);
+      }
     }
     else
     {
       ROS_FATAL_STREAM("invalid geometry type: " + geometry_type);
     }
 
-    if (geometry == nullptr) { return; }
+    for (size_t i=0; i<geometries.size(); i++)
+    {
+      const urdf::Pose &origin = origins[i];
+      const urdf::GeometryConstSharedPtr &geometry = geometries[i];
+      const urdf::MaterialConstSharedPtr &material = materials[i];
 
-    std::shared_ptr<Renderable> r;
-    if (geometry->type == urdf::Geometry::BOX)
-    {
-      urdf::BoxConstSharedPtr box = std::dynamic_pointer_cast<const urdf::Box> (geometry);
-      r.reset (new RenderableBox (box->dim.x, box->dim.y, box->dim.z));
+      std::shared_ptr<Renderable> r;
+      if (geometry->type == urdf::Geometry::BOX)
+      {
+        const urdf::BoxConstSharedPtr box = std::dynamic_pointer_cast<const urdf::Box> (geometry);
+        r = std::make_shared<RenderableBox>(box->dim.x, box->dim.y, box->dim.z);
+      }
+      else if (geometry->type == urdf::Geometry::CYLINDER)
+      {
+        const urdf::CylinderConstSharedPtr cylinder = std::dynamic_pointer_cast<const urdf::Cylinder> (geometry);
+        r = std::make_shared<RenderableCylinder>(cylinder->radius, cylinder->length);
+      }
+      else if (geometry->type == urdf::Geometry::SPHERE)
+      {
+        const urdf::SphereConstSharedPtr sphere = std::dynamic_pointer_cast<const urdf::Sphere> (geometry);
+        r = std::make_shared<RenderableSphere>(sphere->radius);
+      }
+      else if (geometry->type == urdf::Geometry::MESH)
+      {
+        const urdf::MeshConstSharedPtr mesh = std::dynamic_pointer_cast<const urdf::Mesh> (geometry);
+        r = std::make_shared<RenderableMesh>(mesh->filename, mesh->scale.x, mesh->scale.y, mesh->scale.z);
+      }
+      r->setLinkName (tf_prefix_+ "/" + link->name);
+      const urdf::Vector3 position = origin.position;
+      const urdf::Rotation rotation = origin.rotation;
+      r->link_offset = tf::Transform (
+          tf::Quaternion (rotation.x, rotation.y, rotation.z, rotation.w).normalize (),
+          tf::Vector3 (position.x, position.y, position.z));
+      if (material)
+        r->color  = material->color;
+      renderables_.push_back (r);
     }
-    else if (geometry->type == urdf::Geometry::CYLINDER)
-    {
-      urdf::CylinderConstSharedPtr cylinder = std::dynamic_pointer_cast<const urdf::Cylinder> (geometry);
-      r.reset (new RenderableCylinder (cylinder->radius, cylinder->length));
-    }
-    else if (geometry->type == urdf::Geometry::SPHERE)
-    {
-      urdf::SphereConstSharedPtr sphere = std::dynamic_pointer_cast<const urdf::Sphere> (geometry);
-      r.reset (new RenderableSphere (sphere->radius));
-    }
-    else if (geometry->type == urdf::Geometry::MESH)
-    {
-      urdf::MeshConstSharedPtr mesh = std::dynamic_pointer_cast<const urdf::Mesh> (geometry);
-      RenderableMesh* rm = new RenderableMesh (mesh->filename);
-      rm->setScale (mesh->scale.x, mesh->scale.y, mesh->scale.z);
-      r.reset (rm);
-    }
-    r->setLinkName (tf_prefix_+ "/" + link->name);
-    urdf::Vector3 position = origin.position;
-    urdf::Rotation rotation = origin.rotation;
-    r->link_offset = tf::Transform (
-        tf::Quaternion (rotation.x, rotation.y, rotation.z, rotation.w).normalize (),
-        tf::Vector3 (position.x, position.y, position.z));
-    if (link->visual &&
-        (link->visual->material))
-      r->color  = link->visual->material->color;
-    renderables_.push_back (r);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
