@@ -9,6 +9,7 @@ models:
   tf_prefix: "/EXAMPLE"
   geometry_type: "visual" # "visual" or "collision"
   scale: 1.0
+  ignore: []
 # how far in front of the robot model is still deleted? (e.g. 0.05 = 5cm)
 depth_distance_threshold: 0.05
 show_gui: false

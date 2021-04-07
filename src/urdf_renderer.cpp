@@ -47,11 +47,13 @@ namespace realtime_urdf_filter
                               std::string fixed_frame,
                               tf::TransformListener &tf,
                               const std::string &geometry_type,
-                              double scale)
+                              double scale,
+                              const std::unordered_set<std::string> &ignore)
     : model_description_(model_description)
     , tf_prefix_(tf_prefix)
     , geometry_type(geometry_type)
     , scale(scale)
+    , ignore(ignore)
     , camera_frame_ (cam_frame)
     , fixed_frame_(fixed_frame)
     , tf_(tf)
@@ -100,6 +102,9 @@ namespace realtime_urdf_filter
     std::vector<urdf::Pose> origins;
     std::vector<urdf::GeometryConstSharedPtr> geometries;
     std::vector<urdf::MaterialConstSharedPtr> materials;
+
+    // skip links that are not to be used for mask
+    if (ignore.count(link->name)) { return; }
 
     if (geometry_type.empty() || geometry_type == "visual")
     {
