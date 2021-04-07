@@ -138,8 +138,8 @@ class RealtimeURDFFilter
     char **argv_;
 
     // output from rendering
-    GLfloat* masked_depth_;
-    GLubyte* mask_;
+    GLfloat* masked_depth_ = NULL;
+    GLubyte* mask_ = NULL;
 };
 
 } // end namespace
