@@ -35,4 +35,4 @@ void main(void)
   gl_FragData[3] = vec4(should_filter, should_filter, should_filter, 0.0);
 }
 
-		
+

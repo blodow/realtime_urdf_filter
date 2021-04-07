@@ -1,20 +1,20 @@
-/* 
+/*
  * Copyright (c) 2011, Nico Blodow <blodow@cs.tum.edu>, Matteo Saveriano
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
  *     * Neither the name of the Intelligent Autonomous Systems Group/
- *       Technische Universitaet Muenchen nor the names of its contributors 
- *       may be used to endorse or promote products derived from this software 
+ *       Technische Universitaet Muenchen nor the names of its contributors
+ *       may be used to endorse or promote products derived from this software
  *       without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -50,7 +50,7 @@
 	{																\
 		printf("%s failed: %s\n", what, xnGetStatusString(nRetVal));\
 	}
-		// TODO: return nRetVal;											
+		// TODO: return nRetVal;
 
 class OpenNITrackerLoopback
 {
@@ -210,14 +210,14 @@ public:
     P[0] = 585.260; P[1] = 0.0;     P[2]  = 317.387; P[3]  = 0.0;
     P[4] = 0.0;     P[5] = 585.028; P[6]  = 239.264; P[7]  = 0.0;
     P[8] = 0.0;     P[9] = 0.0;     P[10] = 1.0;     P[11] = 0.0;
-  
+
     double fx = P[0];
     double fy = P[5];
     double cx = P[2];
     double cy = P[6];
     double far_plane_ = 8;
     double near_plane_ = 0.1;
-  
+
     double glTf[16];
     for (unsigned int i = 0; i < 16; ++i)
       glTf[i] = 0.0;
@@ -244,7 +244,7 @@ public:
     {
       for (XnUInt x = 0; x < depthMap.XRes(); x++)
       {
-          depthMap_(x, y) = XnDepthPixel (masked_depth[x + y * depthMap.XRes()] * 1000); 
+          depthMap_(x, y) = XnDepthPixel (masked_depth[x + y * depthMap.XRes()] * 1000);
       }
     }
 
@@ -299,7 +299,7 @@ public:
     OpenNITrackerLoopback* self = (OpenNITrackerLoopback*) pCookie;
     XnUInt32 epochTime = 0;
     xnOSGetEpochTime(&epochTime);
-    printf("%d Lost user %d\n", epochTime, nId);	
+    printf("%d Lost user %d\n", epochTime, nId);
     self->publishEvent ("lost", nId);
   }
 
@@ -307,21 +307,21 @@ public:
   static void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
   {
     OpenNITrackerLoopback* self = (OpenNITrackerLoopback*) pCookie;
-    if(nId > 15) 
-    {	
+    if(nId > 15)
+    {
       XnStatus res = self->g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
       if (res != XN_CALIBRATION_STATUS_OK)
-      {	
+      {
         std::cout << "Error StopPoseDetection";
       }
       res = self->g_UserGenerator.GetSkeletonCap().AbortCalibration(nId);
       if (res != XN_CALIBRATION_STATUS_OK)
-      {	
+      {
         std::cout << "Error AbortCalibration";
       }
       res = self->g_UserGenerator.GetSkeletonCap().StopTracking(nId);
       if (res != XN_CALIBRATION_STATUS_OK)
-      {	
+      {
         std::cout << "Error StopTracking";
       }
       self->g_UserGenerator.GetPoseDetectionCap().Release();
@@ -358,7 +358,7 @@ public:
     if (eStatus == XN_CALIBRATION_STATUS_OK)
     {
       // Calibration succeeded
-      printf("%d Calibration complete, start tracking user %d\n", epochTime, nId);		
+      printf("%d Calibration complete, start tracking user %d\n", epochTime, nId);
       self->g_UserGenerator.GetSkeletonCap().StartTracking(nId);
       self->publishEvent ("tracking", nId);
     }
@@ -423,9 +423,9 @@ public:
     }
     tf_pub_.publish (tfs);
   }
-  
+
   // computes a stamped transform for each user joint
-  geometry_msgs::TransformStamped 
+  geometry_msgs::TransformStamped
     getUserTransform(XnUserID const& user, XnSkeletonJoint joint, std::string const& frame_id, std::string const& child_frame_id)
   {
       XnSkeletonJointPosition joint_position;
@@ -452,7 +452,7 @@ public:
       transform.setRotation(tf_q);
 
       geometry_msgs::TransformStamped msg;
-      
+
       // see openni_tracker ticket #4994
       tf::Transform change_frame;
       change_frame.setOrigin(tf::Vector3(0, 0, 0));

@@ -6,7 +6,7 @@
 # OPENNI_INCLUDE_DIRS - Directories containing the OPENNI include files.
 # OPENNI_LIBRARIES - Libraries needed to use OPENNI.
 # OPENNI_DEFINITIONS - Compiler flags for OPENNI.
-# 
+#
 # For libusb-1.0, add USB_10_ROOT if not found
 
 find_package(PkgConfig)
@@ -18,7 +18,7 @@ if(NOT WIN32)
             PATH_SUFFIXES libusb-1.0)
 
   find_library(USB_10_LIBRARY
-               NAMES usb-1.0 
+               NAMES usb-1.0
                HINTS ${PC_USB_10_LIBDIR} ${PC_USB_10_LIBRARY_DIRS} "${USB_10_ROOT}" "$ENV{USB_10_ROOT}"
                PATH_SUFFIXES lib)
    include(FindPackageHandleStandardArgs)
@@ -31,7 +31,7 @@ if(NOT WIN32)
      include_directories(SYSTEM ${USB_10_INCLUDE_DIR})
    endif(NOT USB_10_FOUND)
 endif(NOT WIN32)
- 
+
 if(${CMAKE_VERSION} VERSION_LESS 2.8.2)
   pkg_check_modules(PC_OPENNI openni-dev)
 else()
@@ -51,7 +51,7 @@ find_path(OPENNI_INCLUDE_DIR XnStatus.h
           PATHS "$ENV{OPEN_NI_INSTALL_PATH${OPENNI_SUFFIX}}/Include"
           PATH_SUFFIXES openni include Include)
 #add a hint so that it can find it without the pkg-config
-find_library(OPENNI_LIBRARY 
+find_library(OPENNI_LIBRARY
              NAMES OpenNI${OPENNI_SUFFIX}
              HINTS ${PC_OPENNI_LIBDIR} ${PC_OPENNI_LIBRARY_DIRS} /usr/lib "${OPENNI_ROOT}" "$ENV{OPENNI_ROOT}"
              PATHS "$ENV{OPEN_NI_LIB${OPENNI_SUFFIX}}"
@@ -67,7 +67,7 @@ endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenNI DEFAULT_MSG
     OPENNI_LIBRARY OPENNI_INCLUDE_DIR)
-    
+
 mark_as_advanced(OPENNI_LIBRARY OPENNI_INCLUDE_DIR)
 
 if(OPENNI_FOUND)

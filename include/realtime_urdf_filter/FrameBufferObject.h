@@ -26,19 +26,19 @@
 //
 // Credits:
 // Original RenderTexture code: Mark J. Harris
-//	parts of the code are used from the original RenderTexture  
+//	parts of the code are used from the original RenderTexture
 //
 // -----------------------------------------------------------------------------
 /*
 * The pixel format for the pbuffer is controlled by the mode string passed
-* into the FramebufferObject constructor. This string can have the 
+* into the FramebufferObject constructor. This string can have the
 *	following attributes:
 *
 * To specify the pixel format, use the following syntax.
 *   <channels>=<bits>
 * <channels> must match one of the following.
 *
-*	rgba=n[t]		- currently only RGBA and RGB color attachments are supported, 
+*	rgba=n[t]		- currently only RGBA and RGB color attachments are supported,
 *								n=8, 16 or 32; 16 and 32 are half-float / float buffers,
 *								t for RenderTexture support
 *
@@ -46,24 +46,24 @@
 *
 * depth=n[t]	- must have n-bit depth buffer, omit n for default (24 bits),
 *								n can be 16, 24 or 32 whereas 16 did not work on my machine,
-*								t for RenderTexture support!		
+*								t for RenderTexture support!
 *
-* stencil[=t]	- stencil buffer attachment are currently only supported in 
+* stencil[=t]	- stencil buffer attachment are currently only supported in
 *								combination with depth buffer attachment [both must be either
 *								textures or buffers], the depth attachment is set to 24 Bit.
 *								This is because most OpenGL driver implementations have no
-*								separate stencil or depth buffer - See 
+*								separate stencil or depth buffer - See
 *								EXT_packed_depth_stencil specifications for details!
 *
 *	-----------------------------------------------------------------------------
 *	TODO:
-*	
+*
 *	- support 32 Bit color attachments
 *	- support more stencil buffer attachment combinations
 *	- support more color attachment formats [rg, r, g, b etc.]
 *	- test ATI support
 *	- float depth buffer
-*	
+*
 */
 
 #ifndef __FRAMEBUFFER_OBJECT__
@@ -99,7 +99,7 @@ public:
 	// ---------------------------------------------------------------------------
 
 	enum ColorAttachmentType {
-		
+
 		RGB_8	= 0,
 		RGB_16,
 		RGB_32,
@@ -120,20 +120,20 @@ public:
 
 	/// enable and bind FBO
 	///	if the color attachment is of type float a simple pass
-	///	through fragment shader is automatically enabled to 
+	///	through fragment shader is automatically enabled to
 	///	support 16/32 Bit depth at all, unfortunately this only
-	///	works for the texture coordinates!!! these are convertex 
+	///	works for the texture coordinates!!! these are convertex
 	///	to the color in the shader, disable the pass through
-	///	shader to support your own 
+	///	shader to support your own
 	void						beginCapture(bool bEnablePassThroughShader=true);
-	
+
 	/// disable and "unbind" FBO
 	///	if the color attachment is of type float a simple pass
-	///	through fragment shader is automatically enabled to 
+	///	through fragment shader is automatically enabled to
 	///	support 16/32 Bit depth at all, unfortunately this only
-	///	works for the texture coordinates!!! these are convertex 
+	///	works for the texture coordinates!!! these are convertex
 	///	to the color in the shader, disable the pass through
-	///	shader to support your own 
+	///	shader to support your own
 	void						endCapture(bool bDisablePassThroughShader=true);
 
 	/// bind the color attachment with the index
@@ -207,7 +207,7 @@ protected:
 	GLint										_wrapS;
 	/// wrap t parameter for color attachments, default: GL_CLAMP_TO_EDGE
 	GLint										_wrapT;
-	
+
 	/// min filterfor texture interpolation, default: GL_LINEAR
 	GLint										_minFilter;
 	/// mag filterfor texture interpolation, default: GL_LINEAR
@@ -269,11 +269,11 @@ protected:
 	GLint										_viewport[4];
 
 	/// shader for float support
-  
+
   GLenum _passthrough_program;
   GLenum _passthrough_fragment_shader;
 	GLuint										_passThroughProgram;
-	
+
 	/// indicates if color buffer is a float texture
 	bool										_bFloatColorBuffer;
 
