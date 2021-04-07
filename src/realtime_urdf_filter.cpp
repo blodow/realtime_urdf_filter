@@ -43,7 +43,11 @@ int main (int argc, char **argv)
   realtime_urdf_filter::RealtimeURDFFilter f(nh, argc, argv);
 
   // spin that shit!
-  ros::spin ();
+  try {
+    ros::spin ();
+  }  catch (const std::runtime_error &e) {
+    ROS_FATAL_STREAM(std::string(e.what()));
+  }
 
   return 0;
 }
