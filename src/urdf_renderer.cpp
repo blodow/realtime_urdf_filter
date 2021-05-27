@@ -69,7 +69,7 @@ namespace realtime_urdf_filter
     urdf::Model model;
     if (!model.initString(model_description_))
     {
-      ROS_ERROR ("URDF failed Model parse");
+      ROS_FATAL ("URDF failed Model parse");
       return;
     }
 
