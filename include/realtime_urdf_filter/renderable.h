@@ -105,7 +105,7 @@ struct RenderableCylinder : public Renderable
 // meshes are a tad more complicated than boxes and spheres
 struct RenderableMesh : public Renderable
 {
-  RenderableMesh (std::string meshname);
+  RenderableMesh (std::string meshname, float sx, float sy, float sz);
 
   virtual void render ();
   void setScale (float x, float y, float z);
@@ -134,12 +134,12 @@ private:
   void fromAssimpScene (const aiScene* scene);
   void initMesh (unsigned int i, const aiMesh* mesh, const aiNode* node);
 
+  std::string meshname_;
+
   std::vector<SubMesh> meshes;
   double scale_x;
   double scale_y;
   double scale_z;
-
-  std::string meshname_;
 };
 
 

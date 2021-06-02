@@ -303,8 +303,11 @@ namespace realtime_urdf_filter
     mutable resource_retriever::Retriever retriever_;
   };
 
-  RenderableMesh::RenderableMesh (std::string meshname) :
-    meshname_(meshname)
+  RenderableMesh::RenderableMesh (std::string meshname, float sx, float sy, float sz) :
+    meshname_(meshname),
+    scale_x(sx),
+    scale_y(sy),
+    scale_z(sz)
   {
     Assimp::Importer importer;
     importer.SetIOHandler(new ResourceIOSystem());

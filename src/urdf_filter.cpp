@@ -33,6 +33,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include <unordered_set>
+
 // #define USE_OWN_CALIBRATION
 
 using namespace realtime_urdf_filter;
@@ -134,8 +136,8 @@ void RealtimeURDFFilter::loadModels ()
       XmlRpc::XmlRpcValue elem = v[i];
       ROS_ASSERT (elem.getType()  == XmlRpc::XmlRpcValue::TypeStruct);
 
-      std::string description_param = elem["model"];
-      std::string tf_prefix = elem["tf_prefix"];
+      const std::string description_param = elem["model"];
+      const std::string tf_prefix = elem["tf_prefix"];
 
       // read URDF model
       std::string content;
@@ -161,9 +163,31 @@ void RealtimeURDFFilter::loadModels ()
         continue;
       }
 
+      const double scale = elem.hasMember("scale") ? double(elem["scale"]) : 1.0;
+
+      std::unordered_set<std::string> ignore_links;
+      if (elem.hasMember("ignore"))
+      {
+        switch (elem["ignore"].getType())
+        {
+        case XmlRpc::XmlRpcValue::TypeArray:
+          for (int i=0; i<elem["ignore"].size(); i++)
+          {
+            ignore_links.insert(elem["ignore"][i]);
+          }
+          break;
+        case XmlRpc::XmlRpcValue::TypeString:
+          ignore_links.insert(elem["ignore"]);
+          break;
+        default:
+          ROS_FATAL_STREAM("invalid ignore list format: use either single string or list of strings");
+          break;
+        }
+      }
+
       // finally, set the model description so we can later parse it.
       ROS_INFO ("Loading URDF model: %s", description_param.c_str ());
-      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_));
+      renderers_.push_back (new URDFRenderer (content, tf_prefix, cam_frame_, fixed_frame_, tf_, elem["geometry_type"], scale, ignore_links));
     }
   }
   else
