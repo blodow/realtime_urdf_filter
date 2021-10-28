@@ -529,7 +529,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix, ros::Ti
         "]"
         );
   } catch (tf::TransformException ex) {
-    ROS_DEBUG_STREAM(ex.what());
+    ROS_ERROR_STREAM(ex.what());
     return;
   }
 
