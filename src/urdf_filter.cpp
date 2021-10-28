@@ -488,11 +488,11 @@ void RealtimeURDFFilter::getProjectionMatrix (
 
   // calculate the projection matrix
   // NOTE: this minus is there to flip the x-axis of the image.
-  glTf[0]= -2.0 * fx / width_;
-  glTf[5]= 2.0 * fy / height_;
+  glTf[0]= -2.0 * fx / info->width;
+  glTf[5]= 2.0 * fy / info->height;
 
-  glTf[8]= 2.0 * (0.5 - cx / width_);
-  glTf[9]= 2.0 * (cy / height_ - 0.5);
+  glTf[8]= 2.0 * (0.5 - cx / info->width);
+  glTf[9]= 2.0 * (cy / info->height - 0.5);
 
   glTf[10]= - (far_plane_ + near_plane_) / (far_plane_ - near_plane_);
   glTf[14]= -2.0 * far_plane_ * near_plane_ / (far_plane_ - near_plane_);
