@@ -287,7 +287,7 @@ void RealtimeURDFFilter::filter_callback
       orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
       orig_depth_img->image.convertTo(depth_image, CV_32F, 0.001);
     }
-  } catch (cv_bridge::Exception& e) {
+  } catch (const cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
   }
@@ -528,7 +528,7 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix, ros::Ti
         " "<<camera_transform.getOrigin().z()<<
         "]"
         );
-  } catch (tf::TransformException ex) {
+  } catch (const tf::TransformException &ex) {
     ROS_ERROR_STREAM(ex.what());
     return;
   }
