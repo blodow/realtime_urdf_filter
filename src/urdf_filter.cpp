@@ -52,6 +52,9 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   , camera_ty_(0)
   , far_plane_ (8)
   , near_plane_ (0.1)
+  , target_frame_("/J1")
+  , tf2_(buffer_)
+  , tf2_filter_(depth_mf_sub_, buffer_, target_frame_, 10, 0)
   , argc_ (argc), argv_(argv)
 {
   // get fixed frame name
@@ -110,12 +113,12 @@ RealtimeURDFFilter::RealtimeURDFFilter (ros::NodeHandle &nh, int argc, char **ar
   nh_.param<double> ("filter_replace_value", filter_replace_value_, 0);
   ROS_INFO ("using filter replace value %f", filter_replace_value_);
 
-  // setup publishers
-  depth_sub_ = image_transport_.subscribeCamera("input_depth", 10,
-      &RealtimeURDFFilter::filter_callback, this);
+  // setup publishers and subscriber
+  info_sub_ = nh_.subscribe("camera_info", 10, &RealtimeURDFFilter::cameraInfo_callback, this);
+  depth_mf_sub_.subscribe(nh_, "input_depth", 10);
+  tf2_filter_.registerCallback(boost::bind(&RealtimeURDFFilter::filter_callback, this,_1));
   depth_pub_ = image_transport_.advertiseCamera("output_depth", 10);
   mask_pub_ = image_transport_.advertiseCamera("output_mask", 10);
-}
 
 RealtimeURDFFilter::~RealtimeURDFFilter ()
 {
@@ -266,13 +269,20 @@ void RealtimeURDFFilter::filter (
   }
 }
 
+// callback fucntion that gets ROS image camera info
+void RealtimeURDFFilter::cameraInfo_callback(const sensor_msgs::CameraInfo::ConstPtr& caminfo)
+{
+	camera_info_ = caminfo;
+	info_sub_.shutdown();
+}
+
 // callback function that gets ROS images and does everything
-void RealtimeURDFFilter::filter_callback
-     (const sensor_msgs::ImageConstPtr& ros_depth_image,
-      const sensor_msgs::CameraInfo::ConstPtr& camera_info)
+void RealtimeURDFFilter::filter_callback(const sensor_msgs::ImageConstPtr& ros_depth_image)
 {
   // Debugging
-  ROS_DEBUG_STREAM("Received image with camera info: "<<*camera_info);
+  if (camera_info_) {
+  	ROS_DEBUG_STREAM("Received image with camera info: "<<camera_info_);
+  }
   // convert to OpenCV cv::Mat
   cv_bridge::CvImageConstPtr orig_depth_img;
   cv::Mat depth_image;
@@ -297,7 +307,7 @@ void RealtimeURDFFilter::filter_callback
 
   // Compute the projection matrix from the camera_info
   double projection_matrix[16];
-  getProjectionMatrix (camera_info, projection_matrix);
+  getProjectionMatrix (projection_matrix);
 
   // Filter the image
   this->filter(buffer, projection_matrix, depth_image.cols, depth_image.rows, ros_depth_image->header.stamp);
@@ -315,7 +325,7 @@ void RealtimeURDFFilter::filter_callback
     out_masked_depth.header = ros_depth_image->header;
     out_masked_depth.encoding = ros_depth_image->encoding;
     out_masked_depth.image = masked_depth_image;
-    depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info);
+    depth_pub_.publish (out_masked_depth.toImageMsg (), camera_info_);
   }
 
   if (mask_pub_.getNumSubscribers() > 0)
@@ -325,7 +335,7 @@ void RealtimeURDFFilter::filter_callback
     out_mask.header = ros_depth_image->header;
     out_mask.encoding = sensor_msgs::image_encodings::MONO8;
     out_mask.image = mask_image;
-    mask_pub_.publish (out_mask.toImageMsg (), camera_info);
+    mask_pub_.publish (out_mask.toImageMsg (), camera_info_);
   }
 }
 
@@ -456,8 +466,7 @@ void RealtimeURDFFilter::initFrameBufferObject ()
 }
 
 // compute Projection matrix from CameraInfo message
-void RealtimeURDFFilter::getProjectionMatrix (
-    const sensor_msgs::CameraInfo::ConstPtr& info, double* glTf)
+void RealtimeURDFFilter::getProjectionMatrix (double* glTf)
 {
 #ifdef USE_OWN_CALIBRATION
   float P[12];
@@ -470,15 +479,15 @@ void RealtimeURDFFilter::getProjectionMatrix (
   double cx = P[2];
   double cy = P[6];
 #else
-  double fx = info->P[0];
-  double fy = info->P[5];
-  double cx = info->P[2];
-  double cy = info->P[6];
+  double fx = camera_info_->P[0];
+  double fy = camera_info_->P[5];
+  double cx = camera_info_->P[2];
+  double cy = camera_info_->P[6];
 
   // TODO: check if this does the right thing with respect to registered depth / camera info
   // Add the camera's translation relative to the left camera (from P[3]);
-  camera_tx_ = -1 * (info->P[3] / fx);
-  camera_ty_ = -1 * (info->P[7] / fy);
+  camera_tx_ = -1 * (camera_info_->P[3] / fx);
+  camera_ty_ = -1 * (camera_info_->P[7] / fy);
 
 #endif
 
