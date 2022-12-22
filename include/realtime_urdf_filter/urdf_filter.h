@@ -45,6 +45,10 @@
 
 #include <GL/freeglut.h>
 
+#include <message_filters/subscriber.h>
+#include <tf2_ros/message_filter.h>
+#include <tf2_ros/transform_listener.h>
+
 namespace realtime_urdf_filter
 {
 
@@ -62,10 +66,12 @@ class RealtimeURDFFilter
     // helper function to get current time
     double getTime ();
 
+    // callback fucntion that gets ROS image camera info
+    void cameraInfo_callback(const sensor_msgs::CameraInfo::ConstPtr& current_caminfo);
+
     // callback function that gets ROS images and does everything
     void filter_callback
-         (const sensor_msgs::ImageConstPtr& ros_depth_image,
-          const sensor_msgs::CameraInfo::ConstPtr& camera_info);
+         (const sensor_msgs::ImageConstPtr& ros_depth_image);
 
     // does virtual rendering and filtering based on depth buffer and opengl proj. matrix
     void filter (
@@ -84,7 +90,7 @@ class RealtimeURDFFilter
     void initFrameBufferObject ();
 
     // compute Projection matrix from CameraInfo message
-    void getProjectionMatrix (const sensor_msgs::CameraInfo::ConstPtr& current_caminfo, double* glTf);
+    void getProjectionMatrix (double* glTf);
 
     void render (const double* camera_projection_matrix, ros::Time timestamp = ros::Time());
 
@@ -96,9 +102,20 @@ class RealtimeURDFFilter
     ros::NodeHandle nh_;
     tf::TransformListener tf_;
     image_transport::ImageTransport image_transport_;
-    image_transport::CameraSubscriber depth_sub_;
+    ros::Subscriber info_sub_;
+    ros::Publisher realtime_filter_pub_;
     image_transport::CameraPublisher depth_pub_;
     image_transport::CameraPublisher mask_pub_;
+    
+    // subscribe camera_info separately because tf2_ros MessageFilter accepts one msg type
+    sensor_msgs::CameraInfo::ConstPtr camera_info_;
+    
+  	// setup message filter
+    std::string target_frame_;
+    tf2_ros::Buffer buffer_;
+    tf2_ros::TransformListener tf2_;
+    message_filters::Subscriber<sensor_msgs::Image> depth_mf_sub_;
+    tf2_ros::MessageFilter<sensor_msgs::Image> tf2_filter_;
 
     // rendering objects
     FramebufferObject *fbo_;
