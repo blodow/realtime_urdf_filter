@@ -263,7 +263,7 @@ namespace realtime_urdf_filter
       {
         res = retriever_.get(file);
       }
-      catch (resource_retriever::Exception& e)
+      catch (const resource_retriever::Exception& e)
       {
         return false;
       }
@@ -289,7 +289,7 @@ namespace realtime_urdf_filter
       {
         res = retriever_.get(file);
       }
-      catch (resource_retriever::Exception& e)
+      catch (const resource_retriever::Exception& e)
       {
         return 0;
       }

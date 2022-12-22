@@ -287,7 +287,7 @@ void RealtimeURDFFilter::filter_callback
       orig_depth_img = cv_bridge::toCvShare (ros_depth_image, sensor_msgs::image_encodings::TYPE_16UC1);
       orig_depth_img->image.convertTo(depth_image, CV_32F, 0.001);
     }
-  } catch (cv_bridge::Exception& e) {
+  } catch (const cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge Exception: %s", e.what());
     return;
   }
@@ -305,7 +305,7 @@ void RealtimeURDFFilter::filter_callback
   // publish processed depth image and image mask
   if (depth_pub_.getNumSubscribers() > 0)
   {
-    cv::Mat masked_depth_image (height_, width_, CV_32FC1, masked_depth_);
+    cv::Mat masked_depth_image (camera_info->height, camera_info->width, CV_32FC1, masked_depth_);
     if(ros_depth_image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
     {
       masked_depth_image.convertTo(masked_depth_image, CV_16U, 1000.0);
@@ -320,7 +320,7 @@ void RealtimeURDFFilter::filter_callback
 
   if (mask_pub_.getNumSubscribers() > 0)
   {
-    cv::Mat mask_image (height_, width_, CV_8UC1, mask_);
+    cv::Mat mask_image (camera_info->height, camera_info->width, CV_8UC1, mask_);
     cv_bridge::CvImage out_mask;
     out_mask.header = ros_depth_image->header;
     out_mask.encoding = sensor_msgs::image_encodings::MONO8;
@@ -488,11 +488,11 @@ void RealtimeURDFFilter::getProjectionMatrix (
 
   // calculate the projection matrix
   // NOTE: this minus is there to flip the x-axis of the image.
-  glTf[0]= -2.0 * fx / width_;
-  glTf[5]= 2.0 * fy / height_;
+  glTf[0]= -2.0 * fx / info->width;
+  glTf[5]= 2.0 * fy / info->height;
 
-  glTf[8]= 2.0 * (0.5 - cx / width_);
-  glTf[9]= 2.0 * (cy / height_ - 0.5);
+  glTf[8]= 2.0 * (0.5 - cx / info->width);
+  glTf[9]= 2.0 * (cy / info->height - 0.5);
 
   glTf[10]= - (far_plane_ + near_plane_) / (far_plane_ - near_plane_);
   glTf[14]= -2.0 * far_plane_ * near_plane_ / (far_plane_ - near_plane_);
@@ -528,8 +528,8 @@ void RealtimeURDFFilter::render (const double* camera_projection_matrix, ros::Ti
         " "<<camera_transform.getOrigin().z()<<
         "]"
         );
-  } catch (tf::TransformException ex) {
-    ROS_DEBUG_STREAM(ex.what());
+  } catch (const tf::TransformException &ex) {
+    ROS_ERROR_STREAM(ex.what());
     return;
   }
 

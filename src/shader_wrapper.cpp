@@ -145,7 +145,7 @@ std::string ShaderWrapper::load_text_file (std::string file_name)
   {
     res = retriever.get(file_name);
   }
-  catch (resource_retriever::Exception& e)
+  catch (const resource_retriever::Exception& e)
   {
     throw std::logic_error (std::string("could not open shader file: ").append(file_name));
     return "";

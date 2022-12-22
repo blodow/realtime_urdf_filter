@@ -181,7 +181,7 @@ namespace realtime_urdf_filter
       {
         tf_.lookupTransform (fixed_frame_, (*it)->name, timestamp, t);
       }
-      catch (tf::TransformException ex)
+      catch (const tf::TransformException &ex)
       {
         ROS_DEBUG_STREAM(ex.what());
       }
